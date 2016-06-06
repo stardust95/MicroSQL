@@ -21,6 +21,22 @@
   <ItemGroup>
     <ClCompile Include="src\Source.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\BpTree.hpp" />
+    <ClInclude Include="src\ConnectionManager.hpp" />
+    <ClInclude Include="src\IndexManager.hpp" />
+    <ClInclude Include="src\LogManager.hpp" />
+    <ClInclude Include="src\PageFile.hpp" />
+    <ClInclude Include="src\PageManager.hpp" />
+    <ClInclude Include="src\QueryManager.hpp" />
+    <ClInclude Include="src\Server.h" />
+    <ClInclude Include="src\Setting.hpp" />
+    <ClInclude Include="src\SQLManager.hpp" />
+    <ClInclude Include="src\StorageManager.hpp" />
+    <ClInclude Include="src\transaction.hpp" />
+    <ClInclude Include="src\TransactionManager.hpp" />
+    <ClInclude Include="src\Utils.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{72CB16CA-EBB4-4C1A-B2CD-AFC9909E4F0D}</ProjectGuid>
     <RootNamespace>MicroSQL</RootNamespace>
@@ -77,9 +93,11 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>E:\Libs\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>E:\Libs\boost_1_60_0\vc14\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -99,11 +117,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>E:\Libs\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>E:\Libs\boost_1_60_0\vc14\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
