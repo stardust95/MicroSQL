@@ -3,32 +3,38 @@
 #include "Utils.hpp"
 #include "PageFile.hpp"
 
+/*
+	Buffer Manager
 
-class PageManager {
+*/
+
+class BufferManager {
 public:
 
-	PageManager ( );
-	~PageManager ( );
+	BufferManager ( );
+	~BufferManager ( );
 
 
 	PF::RETCODE CreateFile (const char *fileName);       // Create a new file
 	PF::RETCODE DestroyFile (const char *fileName);       // Destroy a file
-	PF::RETCODE OpenFile (const char *fileName, PageFile &fileHandle);
-	// Open a file
-	PF::RETCODE CloseFile (PageFile &fileHandle);  // Close a file
+	PF::RETCODE OpenFile (const char *fileName, PageFile &fileHandle);		// Open a file
+	PF::RETCODE CloseFile (PageFile &fileHandle);				// Close a file
 	PF::RETCODE AllocateBlock (char *&buffer);              // Allocate a new scratch page in buffer
 	PF::RETCODE DisposeBlock (char *buffer);               // Dispose of a scratch page
 
 private:
 
+
+
+
 };
 
-typedef std::shared_ptr<PageManager> PageManagerPtr;
+typedef std::shared_ptr<BufferManager> PageManagerPtr;
 
-PageManager::PageManager ( ) {
+BufferManager::BufferManager ( ) {
 
 }
 
-PageManager::~PageManager ( ) {
+BufferManager::~BufferManager ( ) {
 
 }

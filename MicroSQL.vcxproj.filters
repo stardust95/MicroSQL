@@ -35,9 +35,6 @@
     <ClInclude Include="src\SQLManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\StorageManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\TransactionManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -47,19 +44,19 @@
     <ClInclude Include="src\PageFile.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\PageManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\BpTree.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\QueryManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\transaction.hpp">
+    <ClInclude Include="src\Server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Server.h">
+    <ClInclude Include="src\BufferManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Transaction.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

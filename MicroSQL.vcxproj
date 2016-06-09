@@ -27,13 +27,12 @@
     <ClInclude Include="src\IndexManager.hpp" />
     <ClInclude Include="src\LogManager.hpp" />
     <ClInclude Include="src\PageFile.hpp" />
-    <ClInclude Include="src\PageManager.hpp" />
+    <ClInclude Include="src\BufferManager.hpp" />
     <ClInclude Include="src\QueryManager.hpp" />
     <ClInclude Include="src\Server.h" />
     <ClInclude Include="src\Setting.hpp" />
     <ClInclude Include="src\SQLManager.hpp" />
-    <ClInclude Include="src\StorageManager.hpp" />
-    <ClInclude Include="src\transaction.hpp" />
+    <ClInclude Include="src\Transaction.hpp" />
     <ClInclude Include="src\TransactionManager.hpp" />
     <ClInclude Include="src\Utils.hpp" />
   </ItemGroup>
@@ -94,6 +93,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>E:\Libs\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -118,6 +118,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>E:\Libs\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

@@ -3,10 +3,9 @@
 #include "Setting.hpp"
 #include "ConnectionManager.hpp"
 #include "IndexManager.hpp"
-#include "PageManager.hpp"
+#include "BufferManager.hpp"
 #include "QueryManager.hpp"
 #include "SQLManager.hpp"
-#include "StorageManager.hpp"
 #include "TransactionManager.hpp"
 
 
@@ -17,9 +16,11 @@ public:
 
 private:
 
-	PageManager _pageMgr;
+	BufferManager _pageMgr;
 
 	SQLManager _sqlMgr;
+
+	IndexManager _indexMgr;
 
 	QueryManager _queryMgr;
 

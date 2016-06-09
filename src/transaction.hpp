@@ -16,7 +16,7 @@ public:
 	Transaction ( );
 	~Transaction ( );
 
-	
+
 
 private:
 
