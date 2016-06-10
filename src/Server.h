@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Setting.hpp"
+#include "Utils.hpp"
 #include "ConnectionManager.hpp"
 #include "IndexManager.hpp"
 #include "BufferManager.hpp"
@@ -16,11 +16,11 @@ public:
 
 private:
 
-	BufferManager _pageMgr;
+	PageManagerPtr _pageMgr;
 
-	SQLManager _sqlMgr;
+	//SQLManagerPtr _sqlMgr;
 
-	IndexManager _indexMgr;
+	IndexManagerPtr _indexMgr;
 
 	QueryManager _queryMgr;
 

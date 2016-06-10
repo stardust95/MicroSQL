@@ -24,13 +24,14 @@
   <ItemGroup>
     <ClInclude Include="src\BpTree.hpp" />
     <ClInclude Include="src\ConnectionManager.hpp" />
+    <ClInclude Include="src\HashTable.hpp" />
     <ClInclude Include="src\IndexManager.hpp" />
     <ClInclude Include="src\LogManager.hpp" />
+    <ClInclude Include="src\Page.hpp" />
     <ClInclude Include="src\PageFile.hpp" />
     <ClInclude Include="src\BufferManager.hpp" />
     <ClInclude Include="src\QueryManager.hpp" />
     <ClInclude Include="src\Server.h" />
-    <ClInclude Include="src\Setting.hpp" />
     <ClInclude Include="src\SQLManager.hpp" />
     <ClInclude Include="src\Transaction.hpp" />
     <ClInclude Include="src\TransactionManager.hpp" />

@@ -1,150 +1,67 @@
 #pragma once
-#include "Utils.hpp"
 
+/*
+	虽然只在内存中才使用Page的成员函数, 
+	但在文件中存储的时候也要按一个Page的大小来写入文件(按Page存储)
+*/
+
+#include "Utils.hpp"
+#include "Page.hpp"
 #include <map>
 #include <fstream>
 
-class Page {
-public:
-
-	struct PageHeader {
-		char identyfyString[PF::identifyStringLen];
-		char tbName[PF::MaxNameLen];
-		bool isUsed;
-	};
-
-	Page ( );
-	~Page ( );
-	Page (const Page & page);
-
-	PF::RETCODE getData (char * & pData) const;
-
-	PF::RETCODE getPageNum (PageNum & pageNum) const;
-
-	PF::RETCODE readHeader (std::ifstream & stream);
-
-	bool getIsUsed ( ) const;
-
-	PF::RETCODE setData (char * );
-
-	PF::RETCODE setPageNum (PageNum);
-
-	PF::RETCODE setUsed (bool);
-
-	PF::RETCODE getTbName (string & name) const;
-
-	PF::RETCODE setTbName (const string & name);
-
-private:
-
-	PageHeader _header;
-
-	PageNum _pageNum;
-
-	char * _pData;
-
-};
-
-typedef shared_ptr<Page> PagePtr;
-
-Page::Page ( ) {
-	_pageNum = -1;
-	_pData = nullptr;
-}
-
-Page::~Page ( ) {
-
-}
-
-inline PF::RETCODE Page::getData (char *& pData) const {
-	pData = _pData;
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-inline PF::RETCODE Page::getPageNum (PageNum & pageNum) const {
-	pageNum = _pageNum;
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-inline PF::RETCODE Page::readHeader (std::ifstream & stream) {
-	stream.read (reinterpret_cast<char*>( &_header), sizeof (Page::PageHeader));
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-
-inline bool Page::getIsUsed ( ) const {
-	return _header.isUsed;
-}
-
-inline PF::RETCODE Page::setData (char * pdata) {
-	_pData = pdata;
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-inline PF::RETCODE Page::setPageNum (PageNum num) {
-	_pageNum = num;
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-inline PF::RETCODE Page::setUsed (bool val) {
-	_header.isUsed = val;
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-inline PF::RETCODE Page::getTbName (string & name) const {
-	name = _header.tbName;
-	return PF::RETCODE::PF_COMPLETE;
-}
-
-inline PF::RETCODE Page::setTbName (const string & name) {
-	strncpy_s(_header.tbName, name.c_str(), PF::MaxNameLen);
-	return PF::RETCODE::PF_COMPLETE;
-}
 
 class PageFile {
 public:
 
-	struct PageFileHeader {
-		char identifyString[PF::identifyStringLen];			// "MicroSQL PageFile", 32 bytes
-		char dbName[PF::MaxNameLen];				// 32 bytes
+	struct PageFileHeader {								// stored in the header of every data file
+		char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL PageFile", 32 bytes
+		char dbName[Utils::MAXNAMELEN];				// 32 bytes
 		PageNum	pageCount;			// ull, 8 bytes
 		size_t pageSize;					// uint, 4 bytes
 	};
 
 	PageFile ( );
+	PageFile ( const char * );
 	~PageFile ( );
 	PageFile (const PageFile & file);
 	
-	PF::RETCODE GetFirstPage (Page &pageHandle) const;   // Get the first page
-	PF::RETCODE GetLastPage (Page &pageHandle) const;   // Get the last page
+	RETCODE GetFirstPage (PagePtr &pageHandle) ;   // Get the first page
+	RETCODE GetLastPage (PagePtr &pageHandle) ;   // Get the last page
 
-	PF::RETCODE GetNextPage (PageNum current, Page &pageHandle) const;
+	RETCODE GetNextPage (PageNum current, PagePtr &pageHandle) ;
 	// Get the next page
-	PF::RETCODE GetPrevPage (PageNum current, Page &pageHandle) const;
+	RETCODE GetPrevPage (PageNum current, PagePtr &pageHandle) ;
 	// Get the previous page
-	PF::RETCODE GetThisPage (PageNum pageNum, Page &pageHandle) const;
+	RETCODE GetThisPage (PageNum pageNum, PagePtr &pageHandle) ;
 	// Get a specific page
-	PF::RETCODE AllocatePage (Page &pageHandle);				     // Allocate a new page
-	PF::RETCODE DisposePage (PageNum pageNum);                   // Dispose of a page 
-	PF::RETCODE MarkDirty (PageNum pageNum) const;				// Mark a page as dirty
-	PF::RETCODE UnlockPage (PageNum pageNum) const;          // Unlock a page
-	PF::RETCODE ForcePages (PageNum pageNum) const;			// Write dirty page(s) to disk
+	RETCODE AllocatePage (PagePtr &pageHandle);				     // Allocate a new page
+	RETCODE DisposePage (PageNum pageNum);                   // Dispose of a page 
+	
+	RETCODE ReadHeader ( );
+
+	RETCODE Open ( );
+	RETCODE Close ( );
+
+	std::ifstream & stream ( ) ;
 
 private:
 
-	string _filepath;
+	PageFileHeader _header;
+
+	string _filename;
 
 	std::ifstream _stream;
-
-	std::map<PageNum, bool> _isDirty;
-
-	std::map<PageNum, bool> _isLocked;
 	
 };
 
-typedef std::shared_ptr<PageFile> PageFilePtr;
+using PageFilePtr = std::shared_ptr<PageFile> ;
 
-PageFile::PageFile ( ) {
+inline PageFile::PageFile ( ) {
+}
+
+PageFile::PageFile (const char * name) {
+	_filename = name;
 
 }
 
@@ -152,7 +69,62 @@ PageFile::~PageFile ( ) {
 
 }
 
-inline PF::RETCODE PageFile::GetFirstPage (Page & pageHandle) const {
+inline RETCODE PageFile::GetFirstPage (PagePtr & pageHandle) {
 	GetThisPage (0, pageHandle);
-	return PF::RETCODE::PF_COMPLETE;
+	return RETCODE::COMPLETE;
+}
+
+inline RETCODE PageFile::GetLastPage (PagePtr & pageHandle) {
+
+
+	return RETCODE::COMPLETE;
+}
+
+inline RETCODE PageFile::GetNextPage (PageNum current, PagePtr & pageHandle) {
+
+	GetThisPage (current + 1, pageHandle);
+
+	return RETCODE::COMPLETE;
+}
+
+inline RETCODE PageFile::GetThisPage (PageNum pageNum, PagePtr & pageHandle) {
+
+	size_t offset = sizeof (PageFileHeader) + static_cast<size_t>( pageNum * Utils::PAGESIZE );
+
+	_stream.seekg (offset, _stream.beg);
+
+	pageHandle = make_shared<Page> ( );
+
+	return RETCODE ( );
+}
+
+inline RETCODE PageFile::ReadHeader ( ) {
+
+	_stream.read (reinterpret_cast< char* >(&_header), sizeof (PageFileHeader));
+
+	if ( strcmp (_header.identifyString, Utils::PAGEFILEIDENTIFYSTRING) != 0 )
+		return RETCODE::INVALIDNAME;
+
+	return RETCODE::COMPLETE;
+}
+
+inline RETCODE PageFile::Open ( ) {
+	
+	_stream.open (this->_filename, std::ifstream::binary | std::ifstream::in);
+
+	return RETCODE::COMPLETE;
+}
+
+inline RETCODE PageFile::Close ( ) {
+	if ( !_stream.is_open ( ) )
+		return RETCODE::CLOSEDFILE;
+
+	_stream.close ( );
+
+	return RETCODE::COMPLETE;
+}
+
+inline std::ifstream & PageFile::stream ( ) {
+
+	return _stream;
 }

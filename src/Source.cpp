@@ -3,7 +3,7 @@
 #include "SQLManager.hpp"
 #include "TransactionManager.hpp"
 #include "Utils.hpp"
-#include "Setting.hpp"
+#include "Utils.hpp"
 #include "PageFile.hpp"
 #include "BufferManager.hpp"
 #include "Server.h"
