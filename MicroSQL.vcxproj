@@ -24,8 +24,11 @@
   <ItemGroup>
     <ClInclude Include="src\BpTree.hpp" />
     <ClInclude Include="src\ConnectionManager.hpp" />
+    <ClInclude Include="src\FileScan.hpp" />
     <ClInclude Include="src\HashTable.hpp" />
+    <ClInclude Include="src\IndexHandle.hpp" />
     <ClInclude Include="src\IndexManager.hpp" />
+    <ClInclude Include="src\IndexScan.hpp" />
     <ClInclude Include="src\LogManager.hpp" />
     <ClInclude Include="src\Page.hpp" />
     <ClInclude Include="src\PageFile.hpp" />

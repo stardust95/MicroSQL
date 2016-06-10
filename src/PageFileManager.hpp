@@ -47,7 +47,12 @@ inline RETCODE PageFileManager::CreateFile (const char * fileName) {
 }
 
 inline RETCODE PageFileManager::DestroyFile (const char * fileName) {
-	return RETCODE ( );
+
+	if ( remove (fileName) ) {
+		return RETCODE::INCOMPLETEWRITE;
+	}
+
+	return RETCODE::COMPLETE;
 }
 
 inline RETCODE PageFileManager::OpenFile (const char * fileName, PageFilePtr & fileHandle) {

@@ -91,7 +91,7 @@ inline RETCODE Page::SetData (char * pdata) {
 	if( _pData == nullptr )
 		_pData = shared_ptr<char>( new char[Utils::PAGESIZE]() );			// allocate memory and pointed by a shared pointer
 	
-	memcpy_s (_pData.get ( ), Utils::PAGESIZE, pdata, Utils::PAGESIZE);			// read the source data
+	memcpy_s (_pData.get ( ), Utils::PAGESIZE, pdata, Utils::PAGESIZE);			// read the souRETCODEe data
 	
 	return RETCODE::COMPLETE;
 }

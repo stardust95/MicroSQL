@@ -26,9 +26,9 @@ public:
 	};
 
 	PageFile ( );
-	PageFile ( const char * );
-	~PageFile ( );
 	PageFile (const PageFile & file);
+	PageFile (const char *);
+	~PageFile ( );
 	
 	RETCODE GetFirstPage (PagePtr &pageHandle) ;   // Get the first page
 	RETCODE GetLastPage (PagePtr &pageHandle) ;   // Get the last page
@@ -70,7 +70,13 @@ PageFile::PageFile (const char * name) {
 }
 
 PageFile::~PageFile ( ) {
+	if ( _stream.is_open ( ) )
+		this->Close ( );
+}
 
+inline PageFile::PageFile (const PageFile & file) {		// TODO: How to copy the stream?
+	_filename = file._filename;
+	
 }
 
 inline RETCODE PageFile::GetFirstPage (PagePtr & pageHandle) {
@@ -104,7 +110,7 @@ inline RETCODE PageFile::GetThisPage (PageNum pageNum, PagePtr & pageHandle) {
 
 inline RETCODE PageFile::Open ( ) {
 	
-	//_stream.open (this->_filename, std::ifstream::binary | std::ifstream::in);
+	_stream.open (this->_filename, std::ifstream::binary | std::ifstream::in);
 
 	return RETCODE::COMPLETE;
 }

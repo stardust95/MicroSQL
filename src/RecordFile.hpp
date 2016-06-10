@@ -8,16 +8,14 @@
 
 #include "Utils.hpp"
 #include "Record.hpp"
-#include "PageFile.hpp"
 #include "BufferManager.hpp"
 
 class RecordFile {
 
 public:
 
-
 	struct RecordFileHeader {								// stored in the first page (PageNum = 0) of every data file
-		char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL PageFile", 32 bytes
+		char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL RecordFile", 32 bytes
 		size_t recordSize;				// uint, 4 bytes
 		size_t recordsPerPage;
 		PageNum	pageCount;			// ull, 8 bytes
@@ -45,10 +43,11 @@ public:
 	RETCODE UpdateRec (const Record &rec);              // Update a record
 	RETCODE ForcePages (PageNum pageNum) const; // Write dirty page(s) to disk
 
-	RETCODE GetPageFilePtr (PageFilePtr & page) const;
-
 	RETCODE ReadHeader ( );
 	RETCODE GetHeader (RecordFileHeader & header) const;			// to write into the first page
+	RETCODE GetPageFilePtr (PageFilePtr & ptr) const;
+
+	bool isValidRecordFile ( ) const;
 
 	/*
 		Static Functions
@@ -67,8 +66,6 @@ private:
 
 	RecordFileHeader _header;			// store in the first page, PageNum = 0
 
-	PageFilePtr _pageFile;
-
 	BufferManagerPtr _bufMgr;
 
 };
@@ -80,11 +77,13 @@ RecordFile::RecordFile () {
 }
 
 inline RecordFile::RecordFile (const PageFile & pageFile) {
-	_pageFile = make_shared<PageFile> (pageFile);
+	//_pageFile = make_shared<PageFile> (pageFile);
+	_bufMgr = make_shared<BufferManager> (pageFile);
 }
 
 inline RecordFile::RecordFile (const PageFilePtr & ptr) {
-	_pageFile = ptr;
+	//_pageFile = ptr;
+	_bufMgr = make_shared<BufferManager> (ptr);
 }
 
 RecordFile::~RecordFile ( ) {
@@ -96,24 +95,31 @@ inline RETCODE RecordFile::GetRec (const RecordIdentifier & rid, Record & rec) c
 	PageNum pageNum;
 	SlotNum slotNum;
 
+	// locate the page and slot by rid
 	if ( (result = rid.GetPageNum (pageNum)) || (result = rid.GetSlotNum (slotNum)) ) {
 		Utils::PrintRetcode (result);
 		return result;
 	}
 
+	if ( pageNum > _header.pageCount || slotNum > _header.recordsPerPage )			// if the request file page is larger than amount
+		return RETCODE::EOFFILE;
+
+	// request the page from buffer
 	PagePtr page;
-	if ( result = _pageFile->GetThisPage (pageNum, page) ) {
+	if ( result = _bufMgr->GetPage (pageNum, page) ) {		
 		Utils::PrintRetcode (result);
 		return result;
 	}
 
+	// get the page data
 	DataPtr pData;
-	if ( result = page->GetData (pData) ) {
+	if ( result = page->GetData (pData) ) {							
 		Utils::PrintRetcode (result);
 		return result;
 	}
 
-	if ( result = rec.SetData (rid, pData.get ( ) + slotNum * _header.recordSize, _header.recordSize) ) {
+	// return the requested record data
+	if ( result = rec.SetData (rid, pData.get ( ) + slotNum * _header.recordSize, _header.recordSize) ) {	
 		Utils::PrintRetcode (result);
 		return result;
 	}
@@ -142,7 +148,7 @@ inline RETCODE RecordFile::DeleteRec (const RecordIdentifier & rid) {
 
 	PagePtr page;
 	
-	if ( result = _pageFile->GetThisPage (pageNum, page) ) {
+	if ( result = _bufMgr->GetPage(pageNum, page) ) {
 		Utils::PrintRetcode (result);
 		return result;
 	}
@@ -160,23 +166,13 @@ inline RETCODE RecordFile::ForcePages (PageNum pageNum) const {
 	return RETCODE ( );
 }
 
-inline RETCODE RecordFile::GetPageFilePtr (PageFilePtr & page) const {
-	page = _pageFile;
-	return RETCODE::COMPLETE;
-}
-
 inline RETCODE RecordFile::ReadHeader ( ) {
 
 	PagePtr page;
 	DataPtr pData;
 	RETCODE result;
 
-	if ( ( result = _pageFile->GetFirstPage (page) ) ) {
-		Utils::PrintRetcode (result);
-		return result;
-	}
-
-	if ( ( _pageFile->GetFirstPage (page) ) ) {
+	if ( ( result = _bufMgr->GetPage(0, page) ) ) {
 		Utils::PrintRetcode (result);
 		return result;
 	}
@@ -205,6 +201,20 @@ inline RETCODE RecordFile::ReadHeader ( ) {
 inline RETCODE RecordFile::GetHeader (RecordFileHeader & header) const {
 	header = _header;
 	return RETCODE::COMPLETE;
+}
+
+inline RETCODE RecordFile::GetPageFilePtr (PageFilePtr & ptr) const {
+	RETCODE result;
+	if ( result = _bufMgr->GetPageFilePtr (ptr) ) {
+		Utils::PrintRetcode (result);
+		return result;
+	}
+
+	return RETCODE::COMPLETE;
+}
+
+inline bool RecordFile::isValidRecordFile ( ) const {
+	return strcmp (_header.identifyString, Utils::RECORDFILEIDENTIFYSTRING) == 0;
 }
 
 inline size_t RecordFile::CalcRecordPerPage (size_t recordSize) {

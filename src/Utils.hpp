@@ -38,6 +38,8 @@ using DataPtr = shared_ptr<char>;
 enum RETCODE {
 
 	COMPLETE = 0,
+
+	EOFFILE,
 	NOMEM,            // out of memory
 	NOBUF,            // out of buffer space
 	INCOMPLETEREAD,   // incomplete read of page from file
@@ -57,7 +59,27 @@ enum RETCODE {
 	INVALIDPAGE,      // invalid page number
 	INVALIDPAGEFILE,
 	FILEOPEN,         // file handle already open
-	CLOSEDFILE       // file is closed
+	CLOSEDFILE,       // file is closed
+
+	INVALIDSCAN,		// invalid scan request
+	INVALIDRECORDFILE,	// invalid record file
+	EOFSCAN,		// end of a scan
+};
+
+enum AttrType {
+	INT,
+	FLOAT,
+	STRING
+};
+
+enum CompOp {
+	EQ_OP, //	equal (i.e., attribute = value)
+	LT_OP, //	less - than (i.e., attribute < value)
+	GT_OP, //	greater - than (i.e., attribute > value)
+	LE_OP, //	less - than - or -equal (i.e., attribute <= value)
+	GE_OP, //	greater - than - or -equal (i.e., attribute >= value)
+	NE_OP, //	not- equal (i.e., attribute <> value)
+	NO_OP	, //no comparison (when value is a null pointer)
 };
 
 namespace Utils{ 
@@ -73,6 +95,8 @@ namespace Utils{
 	const PageNum MAXPAGECOUNT = 2 << 31;
 
 	const char PAGEFILEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL PageFile";
+
+	const char RECORDFILEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL RecordFile";
 
 	const char PAGEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL Page";
 
@@ -109,7 +133,7 @@ namespace Utils{
 		case HASHPAGEEXIST: return "page already exists in hash table"; break;
 		case INVALIDNAME: return "invalid file name"; break;
 		case COMPLETE: return "complete"; break;
-		case EOF: return "end of file"; break;
+		case EOFFILE: return "end of file"; break;
 		case PAGELOCKNED: return "page lockned in buffer"; break;
 		case PAGENOTINBUF: return "page to be unlockned is not in buffer"; break;
 		case PAGEUNLOCKNED: return "page already unlockned"; break;
@@ -118,6 +142,9 @@ namespace Utils{
 		case INVALIDPAGEFILE: return "invalid page file"; break;
 		case FILEOPEN: return "file handle already open"; break;
 		case CLOSEDFILE: return "file is closed"; break;
+		case INVALIDSCAN: return "invalid scan"; break;
+		case INVALIDRECORDFILE: return "invalid record file"; break;
+		case EOFSCAN: return "scan ended"; break;
 		default: return "Unknown RETCODE"; break;
 		}
 	}

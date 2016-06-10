@@ -27,9 +27,13 @@ public:
 
 	}
 
+
+
 private:
 
 };
+template<typename KeyType, typename ValueType, typename Comparator>
+using BpTreePtr = shared_ptr<BpTree<KeyType, ValueType, Comparator>>;
 
 template<typename KeyType, typename ValueType, typename Comparator>
 inline BpTree<KeyType, ValueType, Comparator>::BpTree ( ) {
