@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Utils.hpp"
-
+#include "BpTree.hpp"
 
 class IndexManager {
 public:

@@ -1,15 +1,29 @@
 #pragma once
 
+/*
+	1. 每个表的每个索引都用一棵B+树
+
+*/
+
+#include "Utils.hpp"
+
 #include <memory>
 #include <algorithm>
 
-template<typename T>
+template<typename KeyType, typename ValueType, typename Comparator = std::less<KeyType>>
 class BpTree {
 public:
+
+	struct Node {
+		KeyType key;
+
+	};
+
 	BpTree ( );
+	BpTree (const BpTree &);
 	~BpTree ( );
 
-	void Insert ( ) {
+	void Insert ( const KeyType & key, const ValueType & val ) {
 
 	}
 
@@ -17,3 +31,10 @@ private:
 
 };
 
+template<typename KeyType, typename ValueType, typename Comparator>
+inline BpTree<KeyType, ValueType, Comparator>::BpTree ( ) {
+}
+
+template<typename KeyType, typename ValueType, typename Comparator>
+inline BpTree<KeyType, ValueType, Comparator>::BpTree (const BpTree &) {
+}

@@ -7,6 +7,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream>
+
+
 /*
 	Standard Type Clarification
 */
@@ -21,8 +24,12 @@ using std::vector;
 Type Definition
 */
 
-using uint64 = unsigned long long;
-using PageNum = unsigned long long;
+//using uint64 = unsigned long long;
+
+using PageNum = unsigned long long;			// Identify a page in a file
+
+using SlotNum = unsigned int;		// Identify a record in a page 
+
 using DataPtr = shared_ptr<char>;
 
 /*
@@ -56,16 +63,18 @@ enum RETCODE {
 namespace Utils{ 
 	
 	/*
-		Limit
+		Limitations
 	*/
 
 	const size_t IDENTIFYSTRINGLEN = 32;
 
 	const size_t MAXNAMELEN = 32;
 
+	const PageNum MAXPAGECOUNT = 2 << 31;
+
 	const char PAGEFILEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL PageFile";
 
-	//const char PAGEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL Page";
+	const char PAGEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL Page";
 
 	/*
 		Server Settings
@@ -79,15 +88,15 @@ namespace Utils{
 
 	std::string DEFAULTCHARSET = "utf8";
 
-	size_t PAGESIZE = 4096;		// page size
+	const size_t PAGESIZE = 4096;		// page size
 
-	size_t BUFFERSIZE = 40;			// number of pages in buffer
+	const size_t BUFFERSIZE = 40;			// number of pages in buffer
 
 	/*
 		Utility Functions
 	*/
-
-	string GetRECODEMessage (RETCODE code) {
+	
+	string GetRetcodeMessage (RETCODE code) {
 		switch ( code ) {
 		case NOMEM: return "out of memory"; break;
 		case NOBUF: return "out of buffer space"; break;
@@ -112,6 +121,14 @@ namespace Utils{
 		default: return "Unknown RETCODE"; break;
 		}
 	}
+
+
+	void PrintRetcode (RETCODE code) {
+		std::cout << Utils::GetRetcodeMessage (code) << std::endl;
+	}
+
+
+
 }
 
 

@@ -1,12 +1,5 @@
-#include "IndexManager.hpp"
-#include "LogManager.hpp"
-#include "SQLManager.hpp"
-#include "TransactionManager.hpp"
 #include "Utils.hpp"
-#include "Utils.hpp"
-#include "PageFile.hpp"
-#include "BufferManager.hpp"
-#include "Server.h"
+#include "Server.hpp"
 
 #include <iostream>
 #include <vector>
@@ -14,9 +7,11 @@
 
 int main ( ) {
 
-	PageFile pf;
 	Server server;
+	
+	RecordFileManagerPtr recordMgr = make_shared<RecordFileManager> ( );
 
+	recordMgr->CreateFile ("testfile", 100);
 
 
 }

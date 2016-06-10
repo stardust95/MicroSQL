@@ -1,5 +1,11 @@
 #pragma once
 
+/*
+	1. 一个Page的实际存储大小为 Utils::PAGESIZE + sizeof(PageHeader)
+	2. 虽然只在内存中才使用Page的成员函数, 但在文件中存储的时候也要按一个Page的大小来写入文件(按Page存储)
+*/
+
+
 #include "Utils.hpp"
 #include <fstream>
 
@@ -7,8 +13,7 @@ class Page {
 public:
 
 	struct PageHeader {
-		char fileName[Utils::MAXNAMELEN];
-		char tbName[Utils::MAXNAMELEN];
+		char identifyString[Utils::MAXNAMELEN];
 		PageNum pageNum;
 		bool isUsed;
 	};
@@ -21,21 +26,15 @@ public:
 
 	RETCODE GetPageNum (PageNum & pageNum) const;
 
-	RETCODE ReadHeader (std::ifstream & stream);
-
 	bool GetIsUsed ( ) const;
+
+	RETCODE LoadPage (std::ifstream & stream);
 
 	RETCODE SetData (char *);
 
 	RETCODE SetPageNum (PageNum);
 
 	RETCODE SetUsage (bool);
-
-	RETCODE GetTbName (string & name) const;
-
-	RETCODE GetFileName (string & name) const;
-
-	RETCODE SetTbName (const string & name);
 
 private:
 
@@ -66,10 +65,21 @@ inline RETCODE Page::GetPageNum (PageNum & pageNum) const {
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE Page::ReadHeader (std::ifstream & stream) {
+inline RETCODE Page::LoadPage (std::ifstream & stream) {
+	RETCODE result;
+
 	stream.read (reinterpret_cast< char* >( &_header ), sizeof (Page::PageHeader));
 
-	return RETCODE::COMPLETE;
+	if ( strcmp (_header.identifyString, Utils::PAGEIDENTIFYSTRING) != 0 ) {
+		return RETCODE::INVALIDPAGE;
+	}
+
+	if( _pData == nullptr )
+		_pData = shared_ptr<char> (new char[Utils::PAGESIZE] ( ));
+
+	stream.read (_pData.get ( ), sizeof (Utils::PAGESIZE));
+
+	return result;
 }
 
 
@@ -78,7 +88,8 @@ inline bool Page::GetIsUsed ( ) const {
 }
 
 inline RETCODE Page::SetData (char * pdata) {
-	_pData = shared_ptr<char>( new char[Utils::PAGESIZE]() );			// allocate memory and pointed by a shared pointer
+	if( _pData == nullptr )
+		_pData = shared_ptr<char>( new char[Utils::PAGESIZE]() );			// allocate memory and pointed by a shared pointer
 	
 	memcpy_s (_pData.get ( ), Utils::PAGESIZE, pdata, Utils::PAGESIZE);			// read the source data
 	
@@ -92,20 +103,5 @@ inline RETCODE Page::SetPageNum (PageNum num) {
 
 inline RETCODE Page::SetUsage (bool val) {
 	_header.isUsed = val;
-	return RETCODE::COMPLETE;
-}
-
-inline RETCODE Page::GetTbName (string & name) const {
-	name = _header.tbName;
-	return RETCODE::COMPLETE;
-}
-
-inline RETCODE Page::GetFileName (string & name) const {
-	name = _header.fileName;
-	return RETCODE::COMPLETE;
-}
-
-inline RETCODE Page::SetTbName (const string & name) {
-	strncpy_s (_header.tbName, name.c_str ( ), Utils::MAXNAMELEN);
 	return RETCODE::COMPLETE;
 }

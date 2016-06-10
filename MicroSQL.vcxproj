@@ -30,9 +30,15 @@
     <ClInclude Include="src\Page.hpp" />
     <ClInclude Include="src\PageFile.hpp" />
     <ClInclude Include="src\BufferManager.hpp" />
+    <ClInclude Include="src\PageFileManager.hpp" />
     <ClInclude Include="src\QueryManager.hpp" />
-    <ClInclude Include="src\Server.h" />
+    <ClInclude Include="src\Record.hpp" />
+    <ClInclude Include="src\RecordFile.hpp" />
+    <ClInclude Include="src\RecordIdentifier.hpp" />
+    <ClInclude Include="src\RecordFileManager.hpp" />
+    <ClInclude Include="src\Server.hpp" />
     <ClInclude Include="src\SQLManager.hpp" />
+    <ClInclude Include="src\SystemManager.hpp" />
     <ClInclude Include="src\Transaction.hpp" />
     <ClInclude Include="src\TransactionManager.hpp" />
     <ClInclude Include="src\Utils.hpp" />

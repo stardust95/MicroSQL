@@ -11,7 +11,7 @@ public:
 
 	State _state;
 
-	uint64 _id;
+
 
 	Transaction ( );
 	~Transaction ( );
@@ -21,6 +21,9 @@ public:
 private:
 
 };
+
+using TransactionPtr = shared_ptr<Transaction>;
+
 
 Transaction::Transaction ( ) {
 }

@@ -7,10 +7,16 @@
 #include <unordered_map>
 
 
-using PageMap = std::unordered_multimap<PageNum, PagePtr>;
 
 class HashTable {
 public:
+
+	struct HashEntry {
+		string file;
+		PagePtr page;
+	};
+
+	using PageMap = std::unordered_multimap<PageNum, HashEntry>;
 
 	RETCODE Find (const string & file, PageNum page, PagePtr &) const;
 
@@ -22,16 +28,16 @@ public:
 
 private:
 
-	PageMap::const_iterator _find (const string & file, PageNum page) const;
+	PageMap::const_iterator find (const string & file, PageNum page) const;
 
 	PageMap _bufPages;
 
 };
 
 RETCODE HashTable::Find (const string & file, PageNum page, PagePtr & ptr) const {
-	auto result = this->_find (file, page);
-	if ( result != _bufPages.end ( ) ) {
-		ptr = result->second;
+	auto result = this->find (file, page);
+	if ( result != _bufPages.end ( ) ) {		// has found in table
+		ptr = result->second.page;
 		return RETCODE::COMPLETE;
 	}
 	return RETCODE::HASHNOTFOUND;
@@ -39,32 +45,30 @@ RETCODE HashTable::Find (const string & file, PageNum page, PagePtr & ptr) const
 
 RETCODE HashTable::Insert (const string & file, PageNum page, PagePtr & ptr) {
 	
-	if ( this->_find (file, page) == _bufPages.end ( ) )
+	if ( this->find (file, page) == _bufPages.end ( ) )
 		return RETCODE::HASHPAGEEXIST;
 	
-	ptr = make_shared<Page> ( );
-
+	_bufPages.insert ({ page, { file, ptr } });
 
 	return RETCODE::COMPLETE;
 }
 
 inline RETCODE HashTable::Delete (const string & file, PageNum page) {
-	auto range = _bufPages.equal_range (page);
-	string tmp ;
-	for ( auto it = range.first; it != range.second; it++ )
-		if ( it->second != nullptr && it->second->GetFileName (tmp) == RETCODE::COMPLETE && tmp == file ) {
-			return RETCODE::COMPLETE;
-		}
+	auto it = find (file, page);
+	
+	if( it == _bufPages.end() )
+		return RETCODE::HASHNOTFOUND;
 
-	return RETCODE::HASHNOTFOUND;
+	_bufPages.erase (it);
+
+	return RETCODE::COMPLETE;
 }
 
-inline PageMap::const_iterator HashTable::_find (const string & file, PageNum page) const {
+inline HashTable::PageMap::const_iterator HashTable::find (const string & file, PageNum page) const {
 	auto range = _bufPages.equal_range (page);
 	string tmp;
 	for ( auto it = range.first; it != range.second; it++ )
-		if ( it->second != nullptr && 
-			it->second->GetFileName (tmp) == RETCODE::COMPLETE && tmp == file ) {
+		if ( it->second.page != nullptr && it->second.file == file ) {
 			return it;
 		}
 	return _bufPages.end();

@@ -17,14 +17,7 @@ public:
 	BufferManager ( );
 	~BufferManager ( );
 
-	//RETCODE CreateFile (const char * fileName);       // Create a new file
-	//RETCODE DestroyFile (const char * fileName);       // Destroy a file
-	RETCODE OpenFile (const char * fileName, PageFilePtr & fileHandle);		// Open a file
-	//RETCODE CloseFile (PageFile &fileHandle);				// Close a file
-	//RETCODE AllocateBlock (DataPtr&buffer);              // Allocate a new scratch page in buffer
-	//RETCODE DisposeBlock (DataPtrbuffer);               // Dispose of a scratch page
-
-	RETCODE AllocatePage (PagePtr );
+	RETCODE AllocatePage (const char * filename, PageNum page, PagePtr & pBuffer );
 
 	RETCODE GetPage (const string & filename, PageNum page, PagePtr & pBuffer);		// get and lock the target page to one thread
 
@@ -34,6 +27,8 @@ public:
 
 	RETCODE MarkDirty (const char * filename, PageNum page);
 
+	RETCODE LockPage (const string & filename, PageNum page);
+	
 	RETCODE UnlockPage (const string & filename, PageNum page);
 
 	RETCODE FlushPages (const char *);
@@ -48,7 +43,7 @@ private:
 
 };
 
-using PageManagerPtr = std::shared_ptr<BufferManager> ;
+using BufferManagerPtr = std::shared_ptr<BufferManager> ;
 
 BufferManager::BufferManager ( ) {
 
@@ -58,38 +53,25 @@ BufferManager::~BufferManager ( ) {
 
 }
 
-inline RETCODE BufferManager::OpenFile (const char * fileName, PageFilePtr & fileHandle) {
-
-	fileHandle = make_shared<PageFile>(fileName);
-
-	fileHandle->Open ( );
-
-	return RETCODE ( );
-}
-
-inline RETCODE BufferManager::AllocatePage (PagePtr pg) {
-	//PagePtr pg;
-	string file;
-	PageNum num;
-
-	pg->GetFileName (file);
-	pg->GetPageNum (num);
-
-	if ( _bufferTbl.Find (file, num, pg) != HASHNOTFOUND ) {			// The page is already in buffer
-		return RETCODE::COMPLETE;
+inline RETCODE BufferManager::AllocatePage (const char * file, PageNum num, PagePtr & pBuffer) {
+	RETCODE result;
+	
+	if ( ( result = _bufferTbl.Find (file, num, pBuffer) ) != HASHNOTFOUND ) {			// The page is already in buffer
+		return RETCODE::PAGEINBUF;
 	}
 
-	_bufferTbl.Insert (file, num, pg);		// TODO: Replace page when full
+	_bufferTbl.Insert (file, num, pBuffer);		// TODO: Replace page when full
 
-	return RETCODE::COMPLETE;
+	return result;
 }
 
 inline RETCODE BufferManager::GetPage (const string & filename, PageNum page, PagePtr & ptr) {
 
-	RETCODE result = _bufferTbl.Find (filename, page, ptr);
+	RETCODE result;
 
-	if ( result == RETCODE::COMPLETE ) {
-		return RETCODE::COMPLETE;
+	if ( result = _bufferTbl.Find (filename, page, ptr) ) {
+		Utils::PrintRetcode (result);
+		return result;
 	}
 
 	if ( _lockMap[ptr] == 0 ) {				// the requested page is not using by any thread
@@ -97,6 +79,7 @@ inline RETCODE BufferManager::GetPage (const string & filename, PageNum page, Pa
 	} else {
 		
 	}
+
 	return result;
 
 }
@@ -106,7 +89,8 @@ inline RETCODE BufferManager::ReadPage (const string & filename, PageNum page, c
 	PagePtr ptr;
 	RETCODE result;
 
-	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) != RETCODE::COMPLETE ) {
+	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) ) {
+		Utils::PrintRetcode (result);
 		return result;
 	}
 
@@ -116,7 +100,7 @@ inline RETCODE BufferManager::ReadPage (const string & filename, PageNum page, c
 
 	memcpy_s (dest, Utils::PAGESIZE, pdata.get(), Utils::PAGESIZE);
 
-	return RETCODE::COMPLETE;
+	return result;
 }
 
 inline RETCODE BufferManager::WritePage (const string & filename, PageNum page, char * source) const {
@@ -124,7 +108,8 @@ inline RETCODE BufferManager::WritePage (const string & filename, PageNum page, 
 	PagePtr ptr;
 	RETCODE result;
 
-	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) != RETCODE::COMPLETE ) {
+	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) ) {
+		Utils::PrintRetcode (result);
 		return result;
 	}
 
@@ -138,20 +123,22 @@ inline RETCODE BufferManager::MarkDirty (const char * filename, PageNum page) {
 	PagePtr ptr;
 	RETCODE result;
 
-	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) != RETCODE::COMPLETE ) {
+	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) ) {
+		Utils::PrintRetcode (result);
 		return result;
 	}
 
 	_dirtyMap[ptr] = true;
 
-	return RETCODE::COMPLETE;
+	return result;
 }
 
 inline RETCODE BufferManager::UnlockPage (const string & filename, PageNum page) {
 	PagePtr ptr;
 	RETCODE result;
 
-	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) != RETCODE::COMPLETE ) {
+	if ( ( result = _bufferTbl.Find (filename, page, ptr) ) ) {
+		Utils::PrintRetcode (result);
 		return result;
 	}
 
@@ -159,9 +146,15 @@ inline RETCODE BufferManager::UnlockPage (const string & filename, PageNum page)
 		return RETCODE::PAGEUNLOCKNED;
 	}
 
-	_lockMap[ptr] -= 1;
+	if ( ( result = _bufferTbl.Delete (filename, page) ) ) {
+		Utils::PrintRetcode (result);
+		return result;
+	}
 
-	return RETCODE::COMPLETE;
+	_lockMap[ptr] -= 1;
+	_dirtyMap[ptr] = false;
+
+	return result;
 }
 
 inline RETCODE BufferManager::FlushPages (const char * file) {
@@ -172,7 +165,8 @@ inline RETCODE BufferManager::FlushPages (const char * file) {
 
 	PageFile fileHandle (file);
 
-	if ( (result = fileHandle.Open ( ) ) != RETCODE::COMPLETE ) {
+	if ( (result = fileHandle.Open ( ) ) ) {
+		Utils::PrintRetcode (result);
 		return result;
 	}
 
@@ -185,5 +179,5 @@ inline RETCODE BufferManager::FlushPages (const char * file) {
 	
 	}
 
-	return RETCODE::COMPLETE;
+	return result;
 }
