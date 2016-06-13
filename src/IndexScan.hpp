@@ -9,8 +9,8 @@ public:
 	IndexScan ( );
 	~IndexScan ( );
 	RETCODE OpenScan (const IndexHandle &indexHandle, // Initialize index scan
-									CompOp      compOp,
-									void        *value);
+										CompOp compOp,
+										void*value);
 	RETCODE GetNextEntry (const RecordIdentifier & rid);                         // Get next matching entry
 	RETCODE CloseScan ( );                                 // Terminate index scan
 private:

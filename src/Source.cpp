@@ -1,11 +1,13 @@
 #include "Utils.hpp"
 #include "Server.hpp"
-
+#include "IndexManager.hpp"
+#include "IndexHandle.hpp"
 #include <iostream>
 #include <vector>
 
 
 int main ( ) {
+	IndexHandle handle;
 
 	Server server;
 	

@@ -7,6 +7,7 @@
 #include <unordered_map>
 /*
 	Buffer Manager
+	1. 每个BufferManager管理一个文件(PageFilePtr)的Buffer
 
 */
 

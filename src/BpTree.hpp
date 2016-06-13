@@ -2,43 +2,47 @@
 
 /*
 	1. 每个表的每个索引都用一棵B+树
+	2. B+树的叶节点和内部结点使用不同的数据结构, 
+
+
 
 */
 
 #include "Utils.hpp"
+#include "RecordIdentifier.hpp"
 
 #include <memory>
 #include <algorithm>
 
-template<typename KeyType, typename ValueType, typename Comparator = std::less<KeyType>>
+
+//template<typename KeyType, typename ValueType, typename Comparator = std::less<KeyType>>
 class BpTree {
 public:
 
-	struct Node {
-		KeyType key;
-
-	};
+	using Comparator = int (*)( void*, void*, size_t);			// The type of compare function
 
 	BpTree ( );
+
 	BpTree (const BpTree &);
+	
 	~BpTree ( );
-
-	void Insert ( const KeyType & key, const ValueType & val ) {
-
-	}
-
-
 
 private:
 
-};
-template<typename KeyType, typename ValueType, typename Comparator>
-using BpTreePtr = shared_ptr<BpTree<KeyType, ValueType, Comparator>>;
 
-template<typename KeyType, typename ValueType, typename Comparator>
-inline BpTree<KeyType, ValueType, Comparator>::BpTree ( ) {
+
+};
+
+using BpTreePtr = shared_ptr<BpTree>;
+
+
+BpTree::BpTree ( ) {
+
 }
 
-template<typename KeyType, typename ValueType, typename Comparator>
-inline BpTree<KeyType, ValueType, Comparator>::BpTree (const BpTree &) {
+inline BpTree::BpTree (const BpTree &) {
+}
+
+BpTree::~BpTree ( ) {
+
 }

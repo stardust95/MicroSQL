@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-	1. Server可以直接操作这个类的成员函数, 用于执行数据的更改
+	1. QueryManager可以直接操作这个类的成员函数, 用于执行数据的更改
 	2. 每个打开的RecordFile单独一个Buffer, 需要用到某个页面时先访问BufferManager要
 
 */

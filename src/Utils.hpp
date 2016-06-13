@@ -32,6 +32,8 @@ using SlotNum = unsigned int;		// Identify a record in a page
 
 using DataPtr = shared_ptr<char>;
 
+using VoidPtr = shared_ptr<void>;
+
 /*
 	Enums
 */
@@ -159,3 +161,83 @@ namespace Utils{
 }
 
 
+
+namespace CompMethod {
+
+	int compare_string (void *value1, void* value2, size_t attrLength) {
+		return strncmp (reinterpret_cast< char* >( value1 ) , reinterpret_cast< char* >( value2 ) , attrLength);
+	}
+
+	static int compare_int (void *value1, void* value2, size_t attrLength) {
+		if ( ( *reinterpret_cast< int* >( value1 )  < *reinterpret_cast< int* >( value2 )  ) )
+			return -1;
+		else if ( ( *reinterpret_cast< int* >( value1 )  > *reinterpret_cast< int* >( value2 )  ) )
+			return 1;
+		else
+			return 0;
+	}
+
+	int compare_float (void *value1, void* value2, size_t attrLength) {
+		if ( ( *reinterpret_cast< float* >( value1 )  < *reinterpret_cast< float* >( value2 )  ) )
+			return -1;
+		else if ( ( *reinterpret_cast< float* >( value1 )  > *reinterpret_cast< float* >( value2 )  ) )
+			return 1;
+		else
+			return 0;
+	}
+
+	bool equal (void * value1, void * value2, AttrType attrtype, size_t attrLength) {
+		switch ( attrtype ) {
+		case FLOAT: return ( *reinterpret_cast< float* >( value1 ) == *reinterpret_cast< float* >( value2 ) );
+		case INT: return ( *reinterpret_cast< int* >( value1 ) == *reinterpret_cast< int* >( value2 ) );
+		default:
+			return ( strncmp (reinterpret_cast< char* >( value1 ), reinterpret_cast< char* >( value2 ), attrLength) == 0 );
+		}
+	}
+
+	bool less_than (void * value1, void * value2, AttrType attrtype, size_t attrLength) {
+		switch ( attrtype ) {
+		case FLOAT: return ( *reinterpret_cast< float* >( value1 ) < *reinterpret_cast< float* >( value2 ) );
+		case INT: return ( *reinterpret_cast< int* >( value1 ) < *reinterpret_cast< int* >( value2 ) );
+		default:
+			return ( strncmp (reinterpret_cast< char* >( value1 ), reinterpret_cast< char* >( value2 ), attrLength) < 0 );
+		}
+	}
+
+	bool greater_than (void * value1, void * value2, AttrType attrtype, size_t attrLength) {
+		switch ( attrtype ) {
+		case FLOAT: return ( *reinterpret_cast< float* >( value1 ) > *reinterpret_cast< float* >( value2 ) );
+		case INT: return ( *reinterpret_cast< int* >( value1 ) > *reinterpret_cast< int* >( value2 ) );
+		default:
+			return ( strncmp (reinterpret_cast< char* >( value1 ), reinterpret_cast< char* >( value2 ), attrLength) > 0 );
+		}
+	}
+
+	bool less_than_or_eq_to (void * value1, void * value2, AttrType attrtype, size_t attrLength) {
+		switch ( attrtype ) {
+		case FLOAT: return ( *reinterpret_cast< float* >( value1 ) <= *reinterpret_cast< float* >( value2 ) );
+		case INT: return ( *reinterpret_cast< int* >( value1 ) <= *reinterpret_cast< int* >( value2 ) );
+		default:
+			return ( strncmp (reinterpret_cast< char* >( value1 ), reinterpret_cast< char* >( value2 ), attrLength) <= 0 );
+		}
+	}
+
+	bool greater_than_or_eq_to (void * value1, void * value2, AttrType attrtype, size_t attrLength) {
+		switch ( attrtype ) {
+		case FLOAT: return ( *reinterpret_cast< float* >( value1 ) >= *reinterpret_cast< float* >( value2 ) );
+		case INT: return ( *reinterpret_cast< int* >( value1 ) >= *reinterpret_cast< int* >( value2 ) );
+		default:
+			return ( strncmp (reinterpret_cast< char* >( value1 ), reinterpret_cast< char* >( value2 ), attrLength) >= 0 );
+		}
+	}
+
+	bool not_equal (void * value1, void * value2, AttrType attrtype, size_t attrLength) {
+		switch ( attrtype ) {
+		case FLOAT: return ( *reinterpret_cast< float* >( value1 ) != *reinterpret_cast< float* >( value2 ) );
+		case INT: return ( *reinterpret_cast< int* >( value1 ) != *reinterpret_cast< int* >( value2 ) );
+		default:
+			return ( strncmp (reinterpret_cast< char* >( value1 ), reinterpret_cast< char* >( value2 ), attrLength) != 0 );
+		}
+	}
+
+}

@@ -8,65 +8,7 @@
 #include "Utils.hpp"
 #include "RecordFile.hpp"
 
-namespace CompMethod {
-
-	bool equal (void * value1, void * value2, AttrType attrtype, int attrLength) {
-		switch ( attrtype ) {
-		case FLOAT: return ( *reinterpret_cast<float*>(value1) == *reinterpret_cast<float*>(value2) );
-		case INT: return ( *reinterpret_cast<int*>(value1) == *reinterpret_cast<int*>(value2) );
-		default:
-			return ( strncmp (reinterpret_cast<char*>(value1), reinterpret_cast<char*>(value2), attrLength) == 0 );
-		}
-	}
-
-	bool less_than (void * value1, void * value2, AttrType attrtype, int attrLength) {
-		switch ( attrtype ) {
-		case FLOAT: return ( *reinterpret_cast<float*>(value1) < *reinterpret_cast<float*>(value2) );
-		case INT: return ( *reinterpret_cast<int*>(value1) < *reinterpret_cast<int*>(value2) );
-		default:
-			return ( strncmp (reinterpret_cast<char*>(value1), reinterpret_cast<char*>(value2), attrLength) < 0 );
-		}
-	}
-
-	bool greater_than (void * value1, void * value2, AttrType attrtype, int attrLength) {
-		switch ( attrtype ) {
-		case FLOAT: return ( *reinterpret_cast<float*>(value1) > *reinterpret_cast<float*>(value2) );
-		case INT: return ( *reinterpret_cast<int*>(value1) > *reinterpret_cast<int*>(value2) );
-		default:
-			return ( strncmp (reinterpret_cast<char*>(value1), reinterpret_cast<char*>(value2), attrLength) > 0 );
-		}
-	}
-
-	bool less_than_or_eq_to (void * value1, void * value2, AttrType attrtype, int attrLength) {
-		switch ( attrtype ) {
-		case FLOAT: return ( *reinterpret_cast<float*>(value1) <= *reinterpret_cast<float*>(value2) );
-		case INT: return ( *reinterpret_cast<int*>(value1) <= *reinterpret_cast<int*>(value2) );
-		default:
-			return ( strncmp (reinterpret_cast<char*>(value1), reinterpret_cast<char*>(value2), attrLength) <= 0 );
-		}
-	}
-
-	bool greater_than_or_eq_to (void * value1, void * value2, AttrType attrtype, int attrLength) {
-		switch ( attrtype ) {
-		case FLOAT: return ( *reinterpret_cast<float*>(value1) >= *reinterpret_cast<float*>(value2) );
-		case INT: return ( *reinterpret_cast<int*>(value1) >= *reinterpret_cast<int*>(value2) );
-		default:
-			return ( strncmp (reinterpret_cast<char*>(value1), reinterpret_cast<char*>(value2), attrLength) >= 0 );
-		}
-	}
-
-	bool not_equal (void * value1, void * value2, AttrType attrtype, int attrLength) {
-		switch ( attrtype ) {
-		case FLOAT: return ( *reinterpret_cast<float*>(value1) != *reinterpret_cast<float*>(value2) );
-		case INT: return ( *reinterpret_cast<int*>(value1) != *reinterpret_cast<int*>(value2) );
-		default:
-			return ( strncmp (reinterpret_cast<char*>(value1), reinterpret_cast<char*>(value2), attrLength) != 0 );
-		}
-	}
-
-}
-
-class FileScan {
+class RecordFileScan {
 public:
 
 	const static PageNum BeginPage = 1;
@@ -89,8 +31,8 @@ public:
 
 	};
 
-	FileScan ( );
-	~FileScan ( );
+	RecordFileScan ( );
+	~RecordFileScan ( );
 
 	RETCODE OpenScan (const RecordFilePtr &fileHandle,  // Initialize file scan
 											  AttrType			attrType,
@@ -105,10 +47,8 @@ public:
 		
 private:
 	
-	using Comparator = bool (*)( void*, void*, AttrType, int );
+	using Comparator = bool (*)( void*, void*, AttrType, size_t );
 	
-	using VoidPtr = shared_ptr<void>;
-
 	Comparator _comp;
 
 	RecordFilePtr _recFile;
@@ -127,7 +67,7 @@ private:
 
 };
 
-FileScan::FileScan ( ) {
+RecordFileScan::RecordFileScan ( ) {
 	_scanInfo.state = ScanState::Close;
 	_scanInfo.recordsCount = 0;
 	_scanInfo.scanedPage = 0;
@@ -138,11 +78,11 @@ FileScan::FileScan ( ) {
 
 }
 
-FileScan::~FileScan ( ) {
+RecordFileScan::~RecordFileScan ( ) {
 	
 }
 
-inline RETCODE FileScan::OpenScan (const RecordFilePtr & fileHandle, AttrType attrType, size_t attrLength, size_t attrOffset, CompOp compOp, void * value) {
+inline RETCODE RecordFileScan::OpenScan (const RecordFilePtr & fileHandle, AttrType attrType, size_t attrLength, size_t attrOffset, CompOp compOp, void * value) {
 	
 	if ( _scanInfo.state == Open )
 		return RETCODE::INVALIDSCAN;
@@ -217,7 +157,7 @@ inline RETCODE FileScan::OpenScan (const RecordFilePtr & fileHandle, AttrType at
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE FileScan::GetNextRec (Record & rec) {
+inline RETCODE RecordFileScan::GetNextRec (Record & rec) {
 
 	if ( _scanInfo.state != ScanState::Open )
 		return RETCODE::INVALIDSCAN;
@@ -260,7 +200,7 @@ inline RETCODE FileScan::GetNextRec (Record & rec) {
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE FileScan::CloseScan ( ) {
+inline RETCODE RecordFileScan::CloseScan ( ) {
 	_scanInfo.state = ScanState::Close;
 
 	return RETCODE::COMPLETE;

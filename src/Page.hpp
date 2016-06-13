@@ -45,6 +45,7 @@ private:
 };
 
 using PagePtr = shared_ptr<Page>;
+using PageNumPtr = shared_ptr<PageNum>;
 
 Page::Page ( ) {
 	_header.pageNum = -1;

@@ -25,6 +25,8 @@ private:
 
 };
 
+using RecordIdentifierPtr = shared_ptr<RecordIdentifier>;
+
 RecordIdentifier::RecordIdentifier ( ) {
 }
 

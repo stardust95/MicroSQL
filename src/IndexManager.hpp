@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Utils.hpp"
-#include "BpTree.hpp"
 #include "IndexHandle.hpp"
 #include "IndexScan.hpp"
 
