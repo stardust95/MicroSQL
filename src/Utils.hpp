@@ -66,6 +66,13 @@ enum RETCODE {
 	INVALIDSCAN,		// invalid scan request
 	INVALIDRECORDFILE,	// invalid record file
 	EOFSCAN,		// end of a scan
+
+	KEYNOTFOUND,		 // cannot find the key in BpTreeNode
+	NODEKEYSFULL,		// the BpTreeNode too full to insert new keys
+	OUTOFRANGE,
+	BADKEY,
+	ENTRYEXISTS,
+	INVALIDOPEN,
 };
 
 enum AttrType {
@@ -89,6 +96,10 @@ namespace Utils{
 	/*
 		Limitations
 	*/
+
+	const size_t INVALIDSLOTNUM = -1;
+
+	const size_t INVALIDPAGENUM = -1;
 
 	const size_t IDENTIFYSTRINGLEN = 32;
 

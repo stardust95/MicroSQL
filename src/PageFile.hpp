@@ -23,6 +23,8 @@ public:
 
 	struct PageFileHeader {
 
+		size_t numPages;
+
 	};
 
 	PageFile ( );
@@ -99,11 +101,24 @@ inline RETCODE PageFile::GetNextPage (PageNum current, PagePtr & pageHandle) {
 
 inline RETCODE PageFile::GetThisPage (PageNum pageNum, PagePtr & pageHandle) {
 
+	
+
 	size_t offset = static_cast<size_t>( (pageNum+1) * Utils::PAGESIZE );
 
 	_stream.seekg (offset, _stream.beg);
 
 	pageHandle = make_shared<Page> ( );
+
+	pageHandle->_pData = shared_ptr<char> (new char[Utils::PAGESIZE]());
+
+	_stream.read (pageHandle->_pData.get(), Utils::PAGESIZE);
+
+	return RETCODE ( );
+}
+
+inline RETCODE PageFile::AllocatePage (PagePtr & pageHandle) {
+
+	
 
 	return RETCODE ( );
 }

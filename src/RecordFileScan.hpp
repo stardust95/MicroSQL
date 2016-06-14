@@ -61,7 +61,7 @@ private:
 
 	size_t _attrOffset;
 
-	 VoidPtr _attrValue;
+	 void * _attrValue;
 
 	 ScanInfo _scanInfo;
 

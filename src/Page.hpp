@@ -10,6 +10,9 @@
 #include <fstream>
 
 class Page {
+
+	friend class PageFile;
+
 public:
 
 	struct PageHeader {
@@ -54,6 +57,11 @@ Page::Page ( ) {
 
 Page::~Page ( ) {
 
+}
+
+inline Page::Page (const Page & page) {
+	_header = page._header;
+	_pData = page._pData;
 }
 
 inline RETCODE Page::GetData (DataPtr & pData) const {

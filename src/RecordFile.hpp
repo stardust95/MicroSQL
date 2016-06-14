@@ -35,6 +35,11 @@ public:
 	RecordFile (const PageFilePtr &);
 	~RecordFile ( );
 
+	/*
+	The file must be opened before any other operation
+	*/
+	RETCODE Open ( );
+
 	RETCODE GetRec (const RecordIdentifier &rid, Record &rec) const;
 	// Get a record
 	RETCODE InsertRec (const char *pData, RecordIdentifier &rid);       // Insert a new record,
@@ -184,13 +189,13 @@ inline RETCODE RecordFile::ReadHeader ( ) {
 
 	size_t sizeHeaderNoBitMap = sizeof (RecordFileHeader) - sizeof (RecordFileHeader::bitMap);
 
-	strcpy_s (reinterpret_cast<char*>( &_header ), sizeHeaderNoBitMap, pData.get ( ));
+	memcpy_s (reinterpret_cast<void*>( &_header ), sizeHeaderNoBitMap, pData.get ( ), sizeHeaderNoBitMap);
 
 	size_t sizeBitMap = RecordFile::CalcBitMapBytesPerPage (_header.recordsPerPage);
 
 	_header.bitMap = shared_ptr<char> ( new char[sizeBitMap]() );
 
-	strcpy_s (_header.bitMap.get ( ), sizeBitMap, pData.get ( ) + sizeHeaderNoBitMap);
+	memcpy_s (reinterpret_cast<void*>(_header.bitMap.get ( )), sizeBitMap, pData.get ( ) + sizeHeaderNoBitMap, sizeBitMap);
 
 	if ( strcmp (_header.identifyString, Utils::PAGEFILEIDENTIFYSTRING) != 0 )
 		return RETCODE::INVALIDNAME;

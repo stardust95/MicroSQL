@@ -22,6 +22,7 @@
     <ClCompile Include="src\Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BpTreeNode.hpp" />
     <ClInclude Include="src\ConnectionManager.hpp" />
     <ClInclude Include="src\RecordFileScan.hpp" />
     <ClInclude Include="src\HashTable.hpp" />

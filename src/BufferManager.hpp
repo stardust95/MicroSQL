@@ -38,9 +38,9 @@ public:
 
 	RETCODE GetPageFilePtr (PageFilePtr & ptr) const;
 
-private:
-
 	RETCODE AllocatePage (PageNum page);			// load a new page to buffer table
+
+private:
 
 	PageFilePtr _pageFile;
 
@@ -76,7 +76,11 @@ inline RETCODE BufferManager::AllocatePage ( PageNum num) {
 	RETCODE result;
 	PagePtr pBuffer;
 
-	_pageFile->GetThisPage (num, pBuffer);
+	
+
+	if ( result = _pageFile->GetThisPage (num, pBuffer) ) {
+		//if( result == RETCODE:: )
+	}
 	
 	if ( ( result = _bufferTbl.Find ( num, pBuffer) ) != HASHNOTFOUND ) {			// The page is already in buffer
 		Utils::PrintRetcode (result);

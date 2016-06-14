@@ -2,26 +2,23 @@
 #include "Server.hpp"
 #include "IndexManager.hpp"
 #include "IndexHandle.hpp"
+#include "BpTreeNode.hpp"
+
+
 #include <iostream>
 #include <vector>
 
 
 int main ( ) {
-	IndexHandle handle;
+	//IndexHandle handle;
 
 	Server server;
 	
-	RecordFileManagerPtr recordMgr = make_shared<RecordFileManager> ( );
+	PagePtr page;
 
-	recordMgr->CreateFile ("testfile", 100);
-	
-	RecordFilePtr file;
-	recordMgr->OpenFile ("testfile", file);
+	BpTreeNode node(FLOAT, 4, page);
 
-	RecordIdentifier id{ 1, 1 };
-	Record rec;
-
-	file->GetRec (id, rec);
+	node.Print ( );
 
 }
 
