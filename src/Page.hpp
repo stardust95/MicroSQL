@@ -11,7 +11,7 @@
 
 class Page {
 
-	friend class PageFile;
+	//friend class PageFile;
 
 public:
 
@@ -19,6 +19,12 @@ public:
 		char identifyString[Utils::MAXNAMELEN];
 		PageNum pageNum;
 		bool isUsed;
+
+		PageHeader(){
+			strcpy_s (identifyString, Utils::PAGEIDENTIFYSTRING);
+			isUsed = false;
+		}
+
 	};
 
 	Page ( );
@@ -27,17 +33,21 @@ public:
 
 	RETCODE GetData (DataPtr & pData) const;
 
+	DataPtr GetData ( ) const;
+
 	RETCODE GetPageNum (PageNum & pageNum) const;
 
 	bool GetIsUsed ( ) const;
 
-	RETCODE LoadPage (std::ifstream & stream);
+	RETCODE OpenPage (std::istream & stream);
 
 	RETCODE SetData (char *);
 
 	RETCODE SetPageNum (PageNum);
 
 	RETCODE SetUsage (bool);
+
+	RETCODE Create (PageNum page = 0);
 
 private:
 
@@ -51,7 +61,7 @@ using PagePtr = shared_ptr<Page>;
 using PageNumPtr = shared_ptr<PageNum>;
 
 Page::Page ( ) {
-	_header.pageNum = -1;
+	_header.pageNum = Utils::UNKNOWNPAGENUM;
 	_pData = nullptr;
 }
 
@@ -65,8 +75,12 @@ inline Page::Page (const Page & page) {
 }
 
 inline RETCODE Page::GetData (DataPtr & pData) const {
-	pData = _pData;
+	pData = DataPtr(_pData.get ( ) + sizeof (PageHeader));
 	return RETCODE::COMPLETE;
+}
+
+inline DataPtr Page::GetData ( ) const {
+	return DataPtr(_pData.get() + sizeof(PageHeader));
 }
 
 inline RETCODE Page::GetPageNum (PageNum & pageNum) const {
@@ -74,8 +88,11 @@ inline RETCODE Page::GetPageNum (PageNum & pageNum) const {
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE Page::LoadPage (std::ifstream & stream) {
-	RETCODE result;
+inline RETCODE Page::OpenPage (std::istream & stream) {
+	//RETCODE result;
+
+	if ( _pData == nullptr )
+		this->Create( );
 
 	stream.read (reinterpret_cast< char* >( &_header ), sizeof (Page::PageHeader));
 
@@ -83,14 +100,10 @@ inline RETCODE Page::LoadPage (std::ifstream & stream) {
 		return RETCODE::INVALIDPAGE;
 	}
 
-	if( _pData == nullptr )
-		_pData = shared_ptr<char> (new char[Utils::PAGESIZE] ( ));
+	stream.read (_pData.get ( ) + sizeof(Page::PageHeader), sizeof (Utils::PAGESIZE));
 
-	stream.read (_pData.get ( ), sizeof (Utils::PAGESIZE));
-
-	return result;
+	return RETCODE::COMPLETE;
 }
-
 
 inline bool Page::GetIsUsed ( ) const {
 	return _header.isUsed;
@@ -100,7 +113,7 @@ inline RETCODE Page::SetData (char * pdata) {
 	if( _pData == nullptr )
 		_pData = shared_ptr<char>( new char[Utils::PAGESIZE]() );			// allocate memory and pointed by a shared pointer
 	
-	memcpy_s (_pData.get ( ), Utils::PAGESIZE, pdata, Utils::PAGESIZE);			// read the souRETCODEe data
+	memcpy_s (_pData.get ( ) + sizeof(PageHeader), Utils::PAGESIZE, pdata, Utils::PAGESIZE);			// read the souRETCODEe data
 	
 	return RETCODE::COMPLETE;
 }
@@ -112,5 +125,14 @@ inline RETCODE Page::SetPageNum (PageNum num) {
 
 inline RETCODE Page::SetUsage (bool val) {
 	_header.isUsed = val;
+	return RETCODE::COMPLETE;
+}
+
+inline RETCODE Page::Create (PageNum page) {
+
+	_header.isUsed = true;
+	_header.pageNum = page;
+	_pData = shared_ptr<char> (new char[Utils::PAGESIZE + sizeof (PageHeader)]);
+
 	return RETCODE::COMPLETE;
 }

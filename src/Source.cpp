@@ -1,24 +1,27 @@
 #include "Utils.hpp"
 #include "Server.hpp"
 #include "IndexManager.hpp"
-#include "IndexHandle.hpp"
-#include "BpTreeNode.hpp"
 
 
 #include <iostream>
 #include <vector>
 
 
+using namespace std;
+
 int main ( ) {
-	//IndexHandle handle;
 
-	Server server;
-	
-	PagePtr page;
+	IndexManagerPtr ixMgr = make_shared<IndexManager> ( );
 
-	BpTreeNode node(FLOAT, 4, page);
+	const char * filename = "table.attrName";
 
-	node.Print ( );
+	IndexHandlePtr index;
 
+	ixMgr->CreateIndex (filename, INT, 4);
+
+	ixMgr->OpenIndex (filename, index);
+
+	system ("pause");
+	return 0;
 }
 

@@ -18,13 +18,12 @@ public:
 		char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL RecordFile", 32 bytes
 		size_t recordSize;				// uint, 4 bytes
 		size_t recordsPerPage;
-		PageNum	pageCount;			// ull, 8 bytes
-		PageNum firstFreePage;
+		//PageNum	pageCount;			// ull, 8 bytes
+		//PageNum firstFreePage;
 		DataPtr bitMap;					// the length of bitmap = recordsPerPage; each record use 1 bit
 
 		RecordFileHeader ( ) {
-			strcpy_s (identifyString, Utils::PAGEFILEIDENTIFYSTRING);
-			firstFreePage = 0;
+			strcpy_s (identifyString, Utils::RECORDFILEIDENTIFYSTRING);
 			bitMap = nullptr;
 		}
 
@@ -69,6 +68,8 @@ public:
 
 private:
 
+	PageNum pageCount ( ) const;
+
 	RecordFileHeader _header;			// store in the first page, PageNum = 0
 
 	BufferManagerPtr _bufMgr;
@@ -106,8 +107,8 @@ inline RETCODE RecordFile::GetRec (const RecordIdentifier & rid, Record & rec) c
 		return result;
 	}
 
-	if ( pageNum > _header.pageCount || slotNum > _header.recordsPerPage )			// if the request file page is larger than amount
-		return RETCODE::EOFFILE;
+	//if ( pageNum > _header.pageCount || slotNum > _header.recordsPerPage )			// if the request file page is larger than amount
+	//	return RETCODE::EOFFILE;
 
 	// request the page from buffer
 	PagePtr page;

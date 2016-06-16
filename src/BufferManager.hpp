@@ -9,6 +9,7 @@
 	Buffer Manager
 	1. 每个BufferManager管理一个文件(PageFilePtr)的Buffer
 
+
 */
 
 class BufferManager {
@@ -24,7 +25,7 @@ public:
 
 	RETCODE GetPage (PageNum page, PagePtr & pBuffer);		// get and lock the target page to one thread
 
-	RETCODE ReadPage (PageNum page, char * dest) const;		// read a page from the disk file
+	RETCODE ReadPage (PageNum page, char * dest) ;		// read a page from the disk file
 
 	RETCODE WritePage (PageNum page, char * source) const;	// write a page to the disk file
 
@@ -34,11 +35,15 @@ public:
 	
 	RETCODE UnlockPage (PageNum page);
 
+	RETCODE ForcePage (PageNum page);
+
 	RETCODE FlushPages ( );
 
 	RETCODE GetPageFilePtr (PageFilePtr & ptr) const;
 
-	RETCODE AllocatePage (PageNum page);			// load a new page to buffer table
+	RETCODE AllocatePage (PagePtr & page);			
+
+	RETCODE DisposePage (PageNum page);
 
 private:
 
@@ -72,39 +77,61 @@ BufferManager::~BufferManager ( ) {
 
 }
 
-inline RETCODE BufferManager::AllocatePage ( PageNum num) {
+/*
+	create a new page and write to file
+*/
+inline RETCODE BufferManager::AllocatePage ( PagePtr & page) {
 	RETCODE result;
-	PagePtr pBuffer;
 
-	
-
-	if ( result = _pageFile->GetThisPage (num, pBuffer) ) {
-		//if( result == RETCODE:: )
-	}
-	
-	if ( ( result = _bufferTbl.Find ( num, pBuffer) ) != HASHNOTFOUND ) {			// The page is already in buffer
-		Utils::PrintRetcode (result);
-		return RETCODE::PAGEINBUF;
-	}
-
-	if( result = _bufferTbl.Insert ( num, pBuffer ) ){ 		// TODO: Replace page when full
+	if ( result = _pageFile->AllocatePage (page) ) {
 		Utils::PrintRetcode (result);
 		return result;
 	}
-
+	
+	PageNum num;
+	
+	page->GetPageNum (num);
+	
 	_lockMap[num] = 0;
 	_dirtyMap[num] = false;
 
 	return result;
 }
 
+inline RETCODE BufferManager::DisposePage (PageNum page) {
+	RETCODE result;
+
+	if ( _bufferTbl.Delete (page) != RETCODE::HASHNOTFOUND ) {
+		_dirtyMap.erase (page);
+		_lockMap.erase (page);
+	}
+
+	if ( result = _pageFile->DisposePage (page) ) {
+		Utils::PrintRetcode (result);
+		return result;
+	}
+
+	return RETCODE::COMPLETE;
+}
+
+/*
+	Main Function to get page
+*/
 inline RETCODE BufferManager::GetPage ( PageNum page, PagePtr & ptr) {
 
 	RETCODE result;
+/*
+	if ( page >= _pageFile->GetNumPage ( ) ) {
 
-	if ( result = _bufferTbl.Find ( page, ptr) ) {
-		Utils::PrintRetcode (result);
-		return result;
+		return RETCODE::PAGENUMNOTFOUND;
+	}
+*/
+	if ( _bufferTbl.Find ( page, ptr) == RETCODE::HASHNOTFOUND  ) {
+		if ( result = _pageFile->GetThisPage (page, ptr) ) {
+			Utils::PrintRetcode (result);
+			return result;
+		}
+		_bufferTbl.Insert (page, ptr);
 	}
 
 	if ( result = LockPage (page) ) {
@@ -118,12 +145,13 @@ inline RETCODE BufferManager::GetPage ( PageNum page, PagePtr & ptr) {
 /*
 	Read but not lock the page
 */
-inline RETCODE BufferManager::ReadPage ( PageNum page, char * dest) const {		
+inline RETCODE BufferManager::ReadPage ( PageNum page, char * dest) {		
 
 	PagePtr ptr;
 	RETCODE result;
 
-	if ( ( result = _bufferTbl.Find ( page, ptr) ) ) {
+
+	if ( ( result = GetPage(page, ptr) ) ) {
 		Utils::PrintRetcode (result);
 		return result;
 	}
@@ -151,6 +179,8 @@ inline RETCODE BufferManager::WritePage ( PageNum page, char * source) const {
 	}
 
 	ptr->SetData (source);
+
+	_pageFile->ForcePage (page);
 	
 	return RETCODE::COMPLETE;
 }
@@ -205,22 +235,29 @@ inline RETCODE BufferManager::UnlockPage ( PageNum page) {
 	return result;
 }
 
+inline RETCODE BufferManager::ForcePage (PageNum page) {
+	
+	return _pageFile->ForcePage (page);
+
+
+	//return RETCODE::COMPLETE;
+}
+
 inline RETCODE BufferManager::FlushPages () {			// TODO: How to write page to disk file
 	RETCODE result;
 	vector<PageNum> vec;
 
-	if ( (result = _pageFile->Open ( ) ) ) {
+	if ( (result = _pageFile->Open ( ) ) || result != RETCODE::FILEOPEN ) {
 		Utils::PrintRetcode (result);
 		return result;
 	}
 
-	for ( auto item : vec ) {			// flush all pages
-		//if ( _lockMap[item] > 0 )		
-			//return RETCODE::PAGELOCKNED;
+	_bufferTbl.Keys (vec);
 
-		//if( _dirtyMap[item] )		// if the page is modified, write to the disk file
-			//fileHandle.AllocatePage (item);
-	
+	for ( auto item : vec ) {			// flush all pages
+		if ( _dirtyMap[item] )		// if the page is modified, write to the disk file
+			_pageFile->ForcePage (item);
+
 	}
 
 	return result;

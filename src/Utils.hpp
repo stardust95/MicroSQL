@@ -73,6 +73,9 @@ enum RETCODE {
 	BADKEY,
 	ENTRYEXISTS,
 	INVALIDOPEN,
+	PAGENUMNOTFOUND,
+
+	IXCREATEFAILED,
 };
 
 enum AttrType {
@@ -97,9 +100,11 @@ namespace Utils{
 		Limitations
 	*/
 
-	const size_t INVALIDSLOTNUM = -1;
+	const size_t UNKNOWNPOS = -1;
 
-	const size_t INVALIDPAGENUM = -1;
+	const size_t UNKNOWNSLOTNUM = -1;
+
+	const size_t UNKNOWNPAGENUM = -1;
 
 	const size_t IDENTIFYSTRINGLEN = 32;
 

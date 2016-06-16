@@ -4,6 +4,9 @@
 	1. 用一个数据结构同时表示叶节点和内部结点, 区别仅在于rids
 	对于叶节点, rids即定位一个Record的Page和Slot
 	对于内部结点, rids.page定位子节点的PageNum
+	2. 对于B+树, 除了根之外每个结点(内部/叶)包含[floor(m/2), m-1]个key
+	每个结点最多有m个child指针(总是比key个数多1)
+
 */
 
 #include "Utils.hpp"
@@ -19,7 +22,7 @@ struct BpTreeNodeHeader {
 
 	char identifyChar;				// 'I' for internal node, 'L' for leaf node
 
-	size_t maxKeys;
+	size_t maxKeys;					// the order of bptree
 	size_t numKeys;
 
 	PageNum parentNode;
@@ -51,6 +54,7 @@ public:
 	RETCODE Insert (void* newKey, const RecordIdentifier & rid);
 
 	RETCODE Delete (void * newKey);
+	RETCODE Delete (size_t pos);
 
 	//RETCODE Delete (size_t slot);
 
@@ -61,8 +65,14 @@ public:
 		return KEYNOTEXIST if cannot find a match key
 	*/
 
+	PageNum GetRight ( ) const;
+	RETCODE SetRight (PageNum);
+	PageNum GetLeft ( ) const;
+	RETCODE SetLeft (PageNum);
+
+
 	RETCODE FindKey (void * key, const RecordIdentifier & rid, size_t & keyPos) const;
-	size_t FindKey (void * key, const RecordIdentifier & rid = INVALIDRID);
+	size_t FindKey (void * key, const RecordIdentifier & rid = INVALIDRID) const;
 	size_t FindKeyPosFit (void * key) const;
 		
 	void * LargestKey ( ) const;
@@ -97,10 +107,13 @@ public:
 	PageNum GetParent ( ) const;
 
 	PageNum GetPageNum ( ) const;
+	RecordIdentifier GetPageRid ( ) const;
 
 	bool IsSorted ( ) const;
 
 	bool IsLeaf ( ) const;
+
+	RETCODE CopyKeyTo (size_t pos, void * dst) const;
 
 	int comp (void *, void *) const;
 
@@ -169,12 +182,12 @@ BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page) {
 	return;
 }
 
-BpTreeNode::~BpTreeNode ( ) {
-
+inline BpTreeNode::~BpTreeNode ( ) {
 }
 
 inline RETCODE BpTreeNode::Insert (void * newKey, const RecordIdentifier & rid) {
 
+	//if ( GetNumKeys ( ) + 1 >= GetMaxKeys ( ) ) {
 	if ( GetNumKeys ( ) + 1 >= GetMaxKeys ( ) ) {
 		return RETCODE::NODEKEYSFULL;
 	}
@@ -198,6 +211,9 @@ inline RETCODE BpTreeNode::Insert (void * newKey, const RecordIdentifier & rid) 
 
 inline RETCODE BpTreeNode::Delete ( void * key) {
 
+	if ( key == nullptr )
+		return RETCODE::BADKEY;
+
 	for ( size_t i = 0; i < this->GetNumKeys ( ); ++i ) {
 		if ( comp (keyAt (i), key) == 0 ) {
 			
@@ -215,6 +231,10 @@ inline RETCODE BpTreeNode::Delete ( void * key) {
 
 }
 
+inline RETCODE BpTreeNode::Delete (size_t pos) {
+	return this->Delete(keyAt(pos));
+}
+
 inline bool BpTreeNode::IsSorted ( ) const {
 
 	for ( size_t i = 1; i < this->GetNumKeys ( ); ++i ) {
@@ -229,6 +249,21 @@ inline bool BpTreeNode::IsSorted ( ) const {
 bool BpTreeNode::IsLeaf ( ) const {
 	return header.identifyChar == 'L';
 }
+
+inline RETCODE BpTreeNode::CopyKeyTo (size_t pos, void * dst) const {
+
+	if ( pos >= GetNumKeys ( ) ) {
+		return RETCODE::OUTOFRANGE;
+	}
+
+	if ( dst == nullptr )
+		return RETCODE::BADKEY;
+
+	memcpy_s (dst, attrLen ( ), keyAt (pos), attrLen ( ));
+
+	return RETCODE::COMPLETE;
+}
+
 
 inline int BpTreeNode::comp (void * p1, void * p2) const {
 	assert (p1 != nullptr && p2 != nullptr);
@@ -255,6 +290,25 @@ inline RecordIdentifier BpTreeNode::ridAt (size_t i) const {
 	return INVALIDRID;
 }
 
+inline PageNum BpTreeNode::GetRight ( ) const {
+	return header.nextNode;
+}
+
+inline RETCODE BpTreeNode::SetRight (PageNum page) {
+	header.nextNode = page;
+	return RETCODE::COMPLETE;
+}
+
+inline PageNum BpTreeNode::GetLeft ( ) const {
+	return header.prevNode;
+}
+
+inline RETCODE BpTreeNode::SetLeft (PageNum page) {
+	header.prevNode = page;
+	
+	return RETCODE::COMPLETE;
+}
+
 RETCODE BpTreeNode::FindKey (void * key, const RecordIdentifier & rid, size_t & keyPos) const {
 	
 	for ( size_t i = 0; i < this->GetNumKeys ( ); ++i ) {
@@ -268,25 +322,25 @@ RETCODE BpTreeNode::FindKey (void * key, const RecordIdentifier & rid, size_t & 
 	return RETCODE::KEYNOTFOUND;
 }
 
-inline size_t BpTreeNode::FindKey (void * key, const RecordIdentifier & rid) {
+inline size_t BpTreeNode::FindKey (void * key, const RecordIdentifier & rid) const{
 
 	for ( size_t i = 0; i < GetNumKeys ( ); i++ ) {
 		if ( comp (keyAt (i), key) == 0 && ( rid == INVALIDRID || rid == ridAt (i) ) )
 			return i;
 	}
-	return -1;
+	return Utils::UNKNOWNPOS;
 }
 
 /*
 	return position if key will fit in a particular position
-	return -1 if there was an error
+	return INVALIDPOS if there was an error
 	if there are dups - this will return rightmost position
 */
 inline size_t BpTreeNode::FindKeyPosFit (void * key) const {
 	for ( size_t i = GetNumKeys()-1; i >= 0 ; --i ){ 
 		
 		if ( keyAt (i) == nullptr )
-			return -1;
+			return Utils::UNKNOWNPOS;
 
 		if ( comp (keyAt (i), key) == 0 )
 			return i;
@@ -338,12 +392,16 @@ inline RETCODE BpTreeNode::SetKey (size_t keyPos, void * key) {
 inline RecordIdentifier BpTreeNode::GetRid (size_t pos) const {
 	if ( pos < this->GetNumKeys ( ) )
 		return rids[pos];
+	return INVALIDRID;
 }
 
 inline RecordIdentifier BpTreeNode::GetRid (void * key) const {
-	auto pos = FindKeyPosFit (key);
+	size_t keypos = this->FindKey(key);
 
+	if ( keypos == Utils::UNKNOWNPOS )
+		return INVALIDRID;
 
+	return ridAt (keypos);
 
 }
 
@@ -498,4 +556,8 @@ inline PageNum BpTreeNode::GetParent ( ) const {
 
 inline PageNum BpTreeNode::GetPageNum ( ) const {
 	return this->header.page;
+}
+
+inline RecordIdentifier BpTreeNode::GetPageRid ( ) const {
+	return RecordIdentifier { header.page, Utils::UNKNOWNSLOTNUM };
 }
