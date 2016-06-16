@@ -69,13 +69,13 @@ enum RETCODE {
 
 	KEYNOTFOUND,		 // cannot find the key in BpTreeNode
 	NODEKEYSFULL,		// the BpTreeNode too full to insert new keys
-	OUTOFRANGE,
-	BADKEY,
-	ENTRYEXISTS,
-	INVALIDOPEN,
-	PAGENUMNOTFOUND,
+	OUTOFRANGE,			// the index is out of range
+	BADKEY,					// the key is not satisfies the attrType or length
+	ENTRYEXISTS,			// the same entry already exists
+	INVALIDOPEN,			// cannot open index (invalid parameters)
+	PAGENUMNOTFOUND,	// the page is not in buffer
 
-	IXCREATEFAILED,
+	CREATEFAILED,		// cannot create index handle
 };
 
 enum AttrType {
@@ -163,13 +163,23 @@ namespace Utils{
 		case INVALIDSCAN: return "invalid scan"; break;
 		case INVALIDRECORDFILE: return "invalid record file"; break;
 		case EOFSCAN: return "scan ended"; break;
+
+		case KEYNOTFOUND: return "cannot find the key in BpTreeNode"; break;
+		case NODEKEYSFULL: return "the BpTreeNode too full to insert new keys"; break;
+		case OUTOFRANGE: return "the index is out of range"; break;
+		case BADKEY: return "the key is not satisfies the attrType or length"; break;
+		case ENTRYEXISTS: return "the same entry already exists"; break;
+		case INVALIDOPEN: return "cannot open index (invalid parameters)"; break;
+		case PAGENUMNOTFOUND: return "the page is not in buffer"; break;
+		case CREATEFAILED: return "cannot create file or index"; break;
+
 		default: return "Unknown RETCODE"; break;
 		}
 	}
 
 
-	void PrintRetcode (RETCODE code) {
-		std::cout << Utils::GetRetcodeMessage (code) << std::endl;
+	void PrintRetcode (RETCODE code, std::string func, int line) {
+		std::cout << func << "(" << line << ")" << ": " << Utils::GetRetcodeMessage (code) << std::endl;
 	}
 
 

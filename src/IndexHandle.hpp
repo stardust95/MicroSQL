@@ -3,8 +3,11 @@
 /*
 	1. IndexHandle用于操作(查询, 插入, 删除)一个索引, 与大多数数据库采用的索引相同, 当前其内部实现也为B+树
 	2. 每个结点的大小为Utils::PAGESIZE, 存放的Key
-	3. 一个文件当做一段连续的内存, 指向子节点的指针就是在文件中的偏移
-	4. 叶节点和内部结点都统一用一种struct来存
+	3. 每个PageFile的第一个Page(PageNum = 0)先存PageFileHeader, 再存IndexHeader.
+	4. 一个文件当做一段连续的内存, 指向子节点的指针就是在文件中的偏移
+	5. 叶节点和内部结点都统一用一种struct来存
+
+
 */
 
 #include "Utils.hpp"
@@ -142,7 +145,7 @@ inline RETCODE IndexHandle::Open (BufferManagerPtr buf) {
 	bool hasLeaf = false;
 	if ( height() == 0 ) {		// is empty tree (without root)
 		if ( result = this->GetNewPage (pagePtr) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 		pagePtr->GetPageNum (header.rootPage);
@@ -191,7 +194,7 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 	}
 
 	if ( (result = node->Insert (pData, rid)) && result != RETCODE::NODEKEYSFULL ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -222,14 +225,14 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 		PagePtr pagePtr;
 
 		if ( result = this->GetNewPage (pagePtr) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 
 		newNode = make_shared<BpTreeNode> (attrType ( ), attrLen ( ), pagePtr);
 		
 		if ( result = node->Split (*newNode.get ( )) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 
@@ -284,13 +287,13 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 	} else {
 		// root split happened
 		if ( result = bufMgr->UnlockPage (header.rootPage) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 		// make new root node
 		PagePtr pagePtr;
 		if ( result = GetNewPage (pagePtr) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 
@@ -303,7 +306,7 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 		header.rootPage = root->GetPageNum ( );
 		PagePtr rootPagePtr;
 		if ( result = GetThisPage (header.rootPage, rootPagePtr) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 
@@ -325,14 +328,14 @@ inline RETCODE IndexHandle::ForcePages ( ) {
 	RETCODE result;
 	
 	if ( result = bufMgr->GetPage (0, headerPage) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
-	memcpy_s (headerPage->GetData ( ).get ( ), sizeof (IndexHeader), reinterpret_cast< void* >( &header ), sizeof (IndexHeader));
+	memcpy_s (headerPage->GetDataRawPtr(), sizeof (IndexHeader), reinterpret_cast< void* >( &header ), sizeof (IndexHeader));
 
 	if ( result = bufMgr->FlushPages ( ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -342,20 +345,23 @@ inline RETCODE IndexHandle::ForcePages ( ) {
 inline RETCODE IndexHandle::ReadHeader ( ) {
 
 	PagePtr pagePtr;
-	DataPtr pData;
+	char * pData;
 	RETCODE result;
 
 	if ( result = bufMgr->GetPage (0, pagePtr) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 	
 	if ( result = pagePtr->GetData (pData) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 	
-	memcpy_s (reinterpret_cast< void* >( &header ), sizeof (IndexHeader), pData.get ( ), sizeof (IndexHeader));
+	memcpy_s (reinterpret_cast< void* >( &header ), 
+						sizeof (IndexHeader), 
+						pData + sizeof(PageFileHeader),			// read from a header must add the offset of the PageFileHeader 
+						sizeof (IndexHeader));
 
 	return RETCODE::COMPLETE;
 }
@@ -371,12 +377,12 @@ inline BpTreeNodePtr IndexHandle::FetchNode (const RecordIdentifier & rid) const
 	RETCODE result;
 
 	if ( result = rid.GetPageNum (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return nullptr;
 	}
 
 	if ( result = bufMgr->GetPage (page, pagePtr) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return nullptr;
 	}
 
@@ -411,7 +417,7 @@ inline BpTreeNodePtr IndexHandle::FindLargestLeaf ( ) {
 
 		// make the buffer lock page
 		if ( result = bufMgr->GetPage (page, pagePtr) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return nullptr;
 		}
 
@@ -464,7 +470,7 @@ inline BpTreeNodePtr IndexHandle::FindLeaf (void * pData) {
 		size_t pos = path[i - 1]->FindKeyPosFit (pData);
 
 		if ( result = r.GetPageNum (page) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return nullptr;
 		}
 		
@@ -477,7 +483,7 @@ inline BpTreeNodePtr IndexHandle::FindLeaf (void * pData) {
 		// if start with a new page
 		if ( i < path.size ( ) ) {
 			if ( result = bufMgr->UnlockPage (path[i]->GetPageNum ( )) ) {
-				Utils::PrintRetcode (result);
+				Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 				return nullptr;
 			}
 			path[i] = nullptr;
@@ -488,7 +494,7 @@ inline BpTreeNodePtr IndexHandle::FindLeaf (void * pData) {
 		// lock page
 		PagePtr tmp;
 		if ( result = bufMgr->GetPage (page, tmp) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return nullptr;
 		}
 		pathPage[i - 1] = pos;
@@ -501,12 +507,12 @@ inline RETCODE IndexHandle::GetThisPage (PageNum page, PagePtr & pagePtr) {
 	RETCODE result;
 
 	if ( result = bufMgr->GetPage (page, pagePtr) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( result = bufMgr->MarkDirty (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -519,7 +525,7 @@ inline RETCODE IndexHandle::GetNewPage (PagePtr & page) {
 	RETCODE result;
 
 	if ( result = bufMgr->AllocatePage (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 

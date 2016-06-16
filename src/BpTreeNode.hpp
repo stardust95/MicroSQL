@@ -144,11 +144,11 @@ private:
 };
 
 BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page) {
-	DataPtr pData;
+	char* pData;
 	RETCODE result;
 
 	if ( result = _page->GetData (pData) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return;
 	}
 	
@@ -173,11 +173,11 @@ BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page) {
 		break;
 	}
 
-	memcpy_s (reinterpret_cast< void* >( &header ), sizeof (BpTreeNodeHeader), pData.get ( ), sizeof (BpTreeNodeHeader));
+	memcpy_s (reinterpret_cast< void* >( &header ), sizeof (BpTreeNodeHeader), pData, sizeof (BpTreeNodeHeader));
 
-	keys = pData.get()+sizeof(header);
+	keys = pData+sizeof(header);
 
-	rids = reinterpret_cast< RecordIdentifier *>( pData.get ( ) + attrLen ( ) * header.numKeys );
+	rids = reinterpret_cast< RecordIdentifier *>( pData + attrLen ( ) * header.numKeys );
 
 	return;
 }

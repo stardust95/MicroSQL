@@ -2,9 +2,9 @@
 
 /*
 	1. 每个表单独存放于一个文件中
-	2. 每个文件的第一个Page用于存放文件头信息(PageFileHeader结构体)
-	
-
+	2. 每个文件的第一个Page(PageNum = 0)用于存放文件头信息(PageFileHeader结构体)
+	3. 每个Page的前sizeof(PageHeader)个字节存这个Page的信息
+	4. 
 
 */
 
@@ -14,6 +14,18 @@
 #include <map>
 #include <fstream>
 
+struct PageFileHeader {
+
+	char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL RecordFile", 32 bytes
+	PageNum	pageCount;			// ull, 8 bytes
+	PageNum firstFreePage;
+
+	PageFileHeader ( ) {
+		strcpy_s (identifyString, Utils::PAGEFILEIDENTIFYSTRING);
+		pageCount = 0;
+		firstFreePage = 0;
+	}
+};
 
 class PageFile {
 
@@ -21,20 +33,8 @@ class PageFile {
 
 public:
 
-	struct PageFileHeader {
 
-		char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL RecordFile", 32 bytes
-		PageNum	pageCount;			// ull, 8 bytes
-		PageNum firstFreePage;
-
-		PageFileHeader ( ) {
-			strcpy_s (identifyString, Utils::PAGEFILEIDENTIFYSTRING);
-			pageCount = 0;
-			firstFreePage = 0;
-		}
-	};
-
-	PageFile ( );
+	//PageFile ( );
 	PageFile (const PageFile & file);
 	PageFile (const char *);
 	~PageFile ( );
@@ -74,19 +74,15 @@ private:
 };
 
 using PageFilePtr = std::shared_ptr<PageFile> ;
-//
-//inline PageFile::PageFile ( ) {
-//
-//	
-//
-//}
+
 
 PageFile::PageFile (const char * name) {
 	_filename = name;
 
 }
+
 /*
-	should not interrupt
+	in destructor should not interrupt
 */
 PageFile::~PageFile ( ) {
 	
@@ -96,7 +92,7 @@ PageFile::~PageFile ( ) {
 	result = this->GetThisPage (0, headerPage);
 	assert (result == RETCODE::COMPLETE);
 
-	memcpy_s (headerPage->GetData ( ).get ( ), sizeof (PageFileHeader), reinterpret_cast< void* >( &headerPage ), sizeof (PageFileHeader));
+	memcpy_s (headerPage->GetDataRawPtr(), sizeof (PageFileHeader), reinterpret_cast< void* >( &headerPage ), sizeof (PageFileHeader));
 
 	result = this->ForcePage (0);
 	assert (result == RETCODE::COMPLETE);
@@ -107,18 +103,16 @@ PageFile::~PageFile ( ) {
 
 inline PageFile::PageFile (const PageFile & file) {		// TODO: How to copy the stream?
 	_filename = file._filename;
-	
+	header = file.header;
 }
 
 inline RETCODE PageFile::GetFirstPage (PagePtr & pageHandle) {
-	GetThisPage (0, pageHandle);
-	return RETCODE::COMPLETE;
+	return GetThisPage (1, pageHandle);
 }
 
 inline RETCODE PageFile::GetLastPage (PagePtr & pageHandle) {
 
-
-	return RETCODE::COMPLETE;
+	return GetThisPage (header.pageCount-1, pageHandle);
 }
 
 inline RETCODE PageFile::GetNextPage (PageNum current, PagePtr & pageHandle) {
@@ -126,6 +120,10 @@ inline RETCODE PageFile::GetNextPage (PageNum current, PagePtr & pageHandle) {
 	GetThisPage (current + 1, pageHandle);
 
 	return RETCODE::COMPLETE;
+}
+
+inline RETCODE PageFile::GetPrevPage (PageNum current, PagePtr & pageHandle) {
+	return GetThisPage(current-1, pageHandle);
 }
 
 /*
@@ -139,7 +137,7 @@ inline RETCODE PageFile::GetThisPage (PageNum pageNum, PagePtr & pageHandle) {
 	if ( pageNum >= header.pageCount )
 		return RETCODE::EOFFILE;
 
-	if ( pageNum <= 1 )
+	if ( pageNum < 1 )
 		return RETCODE::INVALIDPAGE;
 
 	//size_t offset = static_cast< size_t >( ( pageNum + 1 ) * Utils::PAGESIZE );	// the first page is used 
@@ -151,7 +149,7 @@ inline RETCODE PageFile::GetThisPage (PageNum pageNum, PagePtr & pageHandle) {
 
 	pageHandle->OpenPage (_stream);
 
-	_stream.read (pageHandle->GetData().get(), Utils::PAGESIZE);
+	_stream.read (pageHandle->GetDataRawPtr(), Utils::PAGESIZE);
 
 	return RETCODE ( );
 }
@@ -169,15 +167,15 @@ inline RETCODE PageFile::AllocatePage (PagePtr & pageHandle) {
 
 	pageHandle = make_shared<Page> ( );
 
-	++header.pageCount;
-
 	pageHandle->Create (header.pageCount);		// the actual using page starts from number 1
 
-	memset (pageHandle->GetData().get(), 0, Utils::PAGESIZE);
+	header.pageCount;
+
+	memset (pageHandle->GetDataRawPtr(), 0, Utils::PAGESIZE);
 
 	_stream.seekp (0, _stream.end);
 
-	_stream.write (pageHandle->GetData().get ( ), Utils::PAGESIZE);
+	_stream.write ( pageHandle->GetDataRawPtr() , Utils::PAGESIZE);
 
 	return RETCODE::COMPLETE;
 }
@@ -188,7 +186,7 @@ inline RETCODE PageFile::DisposePage (PageNum pageNum) {
 	RETCODE result;
 
 	if ( result = this->GetThisPage (pageNum, pageHandle) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -210,13 +208,13 @@ inline RETCODE PageFile::ForcePage (PageNum pageNum) {
 	RETCODE result;
 	
 	if ( result = this->GetThisPage (pageNum, pageHandle) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	_stream.seekp (sizeof (PageFileHeader) + pageNum * Utils::PAGESIZE);
 
-	_stream.write (pageHandle->GetData ( ).get ( ), Utils::PAGESIZE);
+	_stream.write (pageHandle->GetDataRawPtr(), Utils::PAGESIZE);
 
 	return RETCODE::COMPLETE;
 }

@@ -171,7 +171,7 @@ inline RETCODE RecordFileScan::GetNextRec (Record & rec) {
 	for ( ;; ) {
 
 		if ( result = _recFile->GetRec (RecordIdentifier{ _scanInfo.scanedPage, _scanInfo.scanedSlot }, tmpRec) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 
 			if ( result == RETCODE::EOFFILE ) {
 				_scanInfo.state = End;
@@ -186,7 +186,7 @@ inline RETCODE RecordFileScan::GetNextRec (Record & rec) {
 		}
 
 		if ( result = tmpRec.GetData (recData) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 

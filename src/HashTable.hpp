@@ -39,7 +39,7 @@ RETCODE HashTable::Find ( PageNum page, PagePtr & ptr) const {
 
 RETCODE HashTable::Insert ( PageNum page, PagePtr & ptr) {
 	
-	if ( this->find (page) == _bufPages.end ( ) )
+	if ( this->find (page) != _bufPages.end ( ) )
 		return RETCODE::HASHPAGEEXIST;
 	
 	_bufPages.insert ({ page, ptr });

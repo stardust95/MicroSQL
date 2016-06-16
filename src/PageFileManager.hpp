@@ -2,6 +2,10 @@
 
 /*
 	1. 只管理各种文件, 与Buffer无关
+	2. File的第一个Page存PageFileHeader结构体
+
+
+
 */
 
 #include "Utils.hpp"
@@ -36,11 +40,27 @@ PageFileManager::~PageFileManager ( ) {
 inline RETCODE PageFileManager::CreateFile (const char * fileName) {
 
 	std::ofstream newfile;
+	
+	if ( fileName == nullptr )
+		return RETCODE::CREATEFAILED;
 
 	newfile.open (fileName);
 
+	if ( !newfile.is_open ( ) ) {
+		return RETCODE::CREATEFAILED;
+	}
 
+	PageFileHeader header;
+	PageFilePtr pageFile;
+	PagePtr page;
 
+	page->Create ( );
+	header.pageCount = 1;
+	
+	memcpy_s (page->GetDataRawPtr ( ), sizeof (PageFileHeader), reinterpret_cast< void* >( &header ), sizeof (PageFileHeader));
+
+	pageFile = make_shared<PageFile> ( fileName );
+	
 	newfile.close ( );
 
 	return RETCODE::COMPLETE;
@@ -68,7 +88,7 @@ inline RETCODE PageFileManager::CloseFile (PageFilePtr & fileHandle) {
 	RETCODE result;
 
 	if ( ( result = fileHandle->Close ( ) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 

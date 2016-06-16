@@ -84,7 +84,7 @@ inline RETCODE BufferManager::AllocatePage ( PagePtr & page) {
 	RETCODE result;
 
 	if ( result = _pageFile->AllocatePage (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 	
@@ -92,6 +92,11 @@ inline RETCODE BufferManager::AllocatePage ( PagePtr & page) {
 	
 	page->GetPageNum (num);
 	
+	if ( result = _bufferTbl.Insert (num, page) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
+
 	_lockMap[num] = 0;
 	_dirtyMap[num] = false;
 
@@ -107,7 +112,7 @@ inline RETCODE BufferManager::DisposePage (PageNum page) {
 	}
 
 	if ( result = _pageFile->DisposePage (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -128,14 +133,14 @@ inline RETCODE BufferManager::GetPage ( PageNum page, PagePtr & ptr) {
 */
 	if ( _bufferTbl.Find ( page, ptr) == RETCODE::HASHNOTFOUND  ) {
 		if ( result = _pageFile->GetThisPage (page, ptr) ) {
-			Utils::PrintRetcode (result);
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 			return result;
 		}
 		_bufferTbl.Insert (page, ptr);
 	}
 
 	if ( result = LockPage (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -152,15 +157,15 @@ inline RETCODE BufferManager::ReadPage ( PageNum page, char * dest) {
 
 
 	if ( ( result = GetPage(page, ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
-	DataPtr pdata;
+	char * pdata;
 
 	ptr->GetData (pdata);
 
-	memcpy_s (dest, Utils::PAGESIZE, pdata.get(), Utils::PAGESIZE);
+	memcpy_s (dest, Utils::PAGESIZE, pdata, Utils::PAGESIZE);
 
 	return result;
 }
@@ -174,7 +179,7 @@ inline RETCODE BufferManager::WritePage ( PageNum page, char * source) const {
 	RETCODE result;
 
 	if ( ( result = _bufferTbl.Find ( page, ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -191,7 +196,7 @@ inline RETCODE BufferManager::MarkDirty ( PageNum page) {
 	RETCODE result;
 
 	if ( ( result = _bufferTbl.Find ( page, ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -216,7 +221,7 @@ inline RETCODE BufferManager::UnlockPage ( PageNum page) {
 	RETCODE result;
 
 	if ( ( result = _bufferTbl.Find ( page, ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -225,7 +230,7 @@ inline RETCODE BufferManager::UnlockPage ( PageNum page) {
 	}
 
 	if ( ( result = _bufferTbl.Delete ( page) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -247,8 +252,8 @@ inline RETCODE BufferManager::FlushPages () {			// TODO: How to write page to di
 	RETCODE result;
 	vector<PageNum> vec;
 
-	if ( (result = _pageFile->Open ( ) ) || result != RETCODE::FILEOPEN ) {
-		Utils::PrintRetcode (result);
+	if ( (result = _pageFile->Open ( ) ) && result != RETCODE::FILEOPEN ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 

@@ -3,6 +3,8 @@
 /*
 	1. 一个Page的实际存储大小为 Utils::PAGESIZE + sizeof(PageHeader)
 	2. 虽然只在内存中才使用Page的成员函数, 但在文件中存储的时候也要按一个Page的大小来写入文件(按Page存储)
+	3. 传递数据的指针不需要SharedPtr, 用裸指针即可
+	
 */
 
 
@@ -31,9 +33,9 @@ public:
 	~Page ( );
 	Page (const Page & page);
 
-	RETCODE GetData (DataPtr & pData) const;
+	RETCODE GetData (char * & pData) const;
 
-	DataPtr GetData ( ) const;
+	char * GetDataRawPtr ( ) const;
 
 	RETCODE GetPageNum (PageNum & pageNum) const;
 
@@ -74,13 +76,13 @@ inline Page::Page (const Page & page) {
 	_pData = page._pData;
 }
 
-inline RETCODE Page::GetData (DataPtr & pData) const {
-	pData = DataPtr(_pData.get ( ) + sizeof (PageHeader));
+inline RETCODE Page::GetData (char * &  pData) const {
+	pData = _pData.get ( ) + sizeof (PageHeader);
 	return RETCODE::COMPLETE;
 }
 
-inline DataPtr Page::GetData ( ) const {
-	return DataPtr(_pData.get() + sizeof(PageHeader));
+inline char * Page::GetDataRawPtr ( ) const {
+	return _pData.get ( ) + sizeof (PageHeader);
 }
 
 inline RETCODE Page::GetPageNum (PageNum & pageNum) const {

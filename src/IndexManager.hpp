@@ -38,37 +38,37 @@ IndexManager::~IndexManager ( ) {
 inline RETCODE IndexManager::CreateIndex (const char * fileName, AttrType attrType, int attrLength) {
 
 	if ( !( attrType == FLOAT || attrType == INT || attrType == STRING ) || fileName == nullptr )
-		return RETCODE::IXCREATEFAILED;
+		return RETCODE::CREATEFAILED;
 
 	if ( ( attrType == FLOAT && attrLength != 4 ) || ( attrType == INT && attrLength != 4 ) )
-		return RETCODE::IXCREATEFAILED;
+		return RETCODE::CREATEFAILED;
 
 	PageFilePtr pagefile;
 	BufferManagerPtr bufMgr;
 	RETCODE result;
 
 	if ( result = _pfMgr->CreateFile (fileName) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( result = _pfMgr->OpenFile (fileName, pagefile) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	bufMgr = make_shared<BufferManager> (pagefile);
 
 	PagePtr headerPage;
-	DataPtr pData;
+	char * pData;
 
 	if ( result = bufMgr->AllocatePage (headerPage) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( result = headerPage->GetData (pData) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -79,28 +79,28 @@ inline RETCODE IndexManager::CreateIndex (const char * fileName, AttrType attrTy
 	header.numMaxKeys = ( Utils::PAGESIZE - sizeof (BpTreeNodeHeader) ) / ( sizeof (attrLength) + sizeof (RecordIdentifier) );
 	header.rootPage = -1;
 
-	memcpy_s (pData.get ( ), sizeof (IndexHeader), reinterpret_cast< void* >( &header ), sizeof (IndexHeader));
+	memcpy_s (pData, sizeof (IndexHeader), reinterpret_cast< void* >( &header ), sizeof (IndexHeader));
 
 	PageNum page;
 	headerPage->GetPageNum (page);
 
 	if ( result = bufMgr->MarkDirty (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 	// write the header page to disk
-	if ( result = bufMgr->UnlockPage (page) ) {
-		Utils::PrintRetcode (result);
+	if ( (result = bufMgr->UnlockPage (page)) && result != RETCODE::PAGEUNLOCKNED ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( result = bufMgr->ForcePage (page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( result = _pfMgr->CloseFile (pagefile) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -112,7 +112,7 @@ inline RETCODE IndexManager::OpenIndex (const char * fileName, IndexHandlePtr & 
 	PageFilePtr pageFile;
 
 	if ( result = _pfMgr->OpenFile (fileName, pageFile) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -121,12 +121,12 @@ inline RETCODE IndexManager::OpenIndex (const char * fileName, IndexHandlePtr & 
 	indexHandle = make_shared<IndexHandle> ( );
 
 	if ( result = indexHandle->Open (bufMgr) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( result = _pfMgr->CloseFile (pageFile) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 

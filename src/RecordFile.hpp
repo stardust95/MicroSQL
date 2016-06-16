@@ -3,31 +3,33 @@
 /*
 	1. QueryManager可以直接操作这个类的成员函数, 用于执行数据的更改
 	2. 每个打开的RecordFile单独一个Buffer, 需要用到某个页面时先访问BufferManager要
-
+	3. 每个PageFile的第一个Page先存PageFileHeader, 之后存RecordFileHeaedr
 */
 
 #include "Utils.hpp"
 #include "Record.hpp"
 #include "BufferManager.hpp"
 
+struct RecordFileHeader {								// stored in the first page (PageNum = 0) of every data file
+	char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL RecordFile", 32 bytes
+	size_t recordSize;				// uint, 4 bytes
+	size_t recordsPerPage;
+	//PageNum	pageCount;			// ull, 8 bytes
+	//PageNum firstFreePage;
+	DataPtr bitMap;					// the length of bitmap = recordsPerPage; each record use 1 bit
+
+	RecordFileHeader ( ) {
+		strcpy_s (identifyString, Utils::RECORDFILEIDENTIFYSTRING);
+		bitMap = nullptr;
+		recordSize = recordsPerPage = 0;
+	}
+
+};
+
 class RecordFile {
 
 public:
 
-	struct RecordFileHeader {								// stored in the first page (PageNum = 0) of every data file
-		char identifyString[Utils::IDENTIFYSTRINGLEN];			// "MicroSQL RecordFile", 32 bytes
-		size_t recordSize;				// uint, 4 bytes
-		size_t recordsPerPage;
-		//PageNum	pageCount;			// ull, 8 bytes
-		//PageNum firstFreePage;
-		DataPtr bitMap;					// the length of bitmap = recordsPerPage; each record use 1 bit
-
-		RecordFileHeader ( ) {
-			strcpy_s (identifyString, Utils::RECORDFILEIDENTIFYSTRING);
-			bitMap = nullptr;
-		}
-
-	};
 	
 	RecordFile ( );
 	RecordFile (const PageFile &);
@@ -103,7 +105,7 @@ inline RETCODE RecordFile::GetRec (const RecordIdentifier & rid, Record & rec) c
 
 	// locate the page and slot by rid
 	if ( (result = rid.GetPageNum (pageNum)) || (result = rid.GetSlotNum (slotNum)) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -113,20 +115,20 @@ inline RETCODE RecordFile::GetRec (const RecordIdentifier & rid, Record & rec) c
 	// request the page from buffer
 	PagePtr page;
 	if ( result = _bufMgr->GetPage (pageNum, page) ) {		
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	// get the page data
-	DataPtr pData;
+	char * pData;
 	if ( result = page->GetData (pData) ) {							
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	// return the requested record data
-	if ( result = rec.SetData (rid, pData.get ( ) + slotNum * _header.recordSize, _header.recordSize) ) {	
-		Utils::PrintRetcode (result);
+	if ( result = rec.SetData (rid, pData + slotNum * _header.recordSize, _header.recordSize) ) {	
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -148,14 +150,14 @@ inline RETCODE RecordFile::DeleteRec (const RecordIdentifier & rid) {
 	PageNum pageNum;
 
 	if ( result = GetRecordPageAndSlot (rid, pageNum, slotNum) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	PagePtr page;
 	
 	if ( result = _bufMgr->GetPage(pageNum, page) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 	
@@ -174,29 +176,35 @@ inline RETCODE RecordFile::ForcePages (PageNum pageNum) const {
 
 inline RETCODE RecordFile::ReadHeader ( ) {
 
-	PagePtr page;
-	DataPtr pData;
+	PagePtr page;				// Header Page
+	char* pData;
 	RETCODE result;
 
 	if ( ( result = _bufMgr->GetPage(0, page) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	if ( ( page->GetData (pData) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
 	size_t sizeHeaderNoBitMap = sizeof (RecordFileHeader) - sizeof (RecordFileHeader::bitMap);
 
-	memcpy_s (reinterpret_cast<void*>( &_header ), sizeHeaderNoBitMap, pData.get ( ), sizeHeaderNoBitMap);
+	memcpy_s (reinterpret_cast<void*>( &_header ), 
+						  sizeHeaderNoBitMap, 
+						  pData + sizeof(PageFileHeader),	// read from a header must add the offset of the PageFileHeader 
+						  sizeHeaderNoBitMap);
 
 	size_t sizeBitMap = RecordFile::CalcBitMapBytesPerPage (_header.recordsPerPage);
 
 	_header.bitMap = shared_ptr<char> ( new char[sizeBitMap]() );
 
-	memcpy_s (reinterpret_cast<void*>(_header.bitMap.get ( )), sizeBitMap, pData.get ( ) + sizeHeaderNoBitMap, sizeBitMap);
+	memcpy_s (reinterpret_cast<void*>(_header.bitMap.get ( )), 
+			  sizeBitMap,
+			  pData + sizeof(PageFileHeader) + sizeHeaderNoBitMap,	
+			  sizeBitMap);
 
 	if ( strcmp (_header.identifyString, Utils::PAGEFILEIDENTIFYSTRING) != 0 )
 		return RETCODE::INVALIDNAME;
@@ -212,7 +220,7 @@ inline RETCODE RecordFile::GetHeader (RecordFileHeader & header) const {
 inline RETCODE RecordFile::GetPageFilePtr (PageFilePtr & ptr) const {
 	RETCODE result;
 	if ( result = _bufMgr->GetPageFilePtr (ptr) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
