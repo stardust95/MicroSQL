@@ -29,9 +29,6 @@
     <ClInclude Include="src\LogManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\SQLManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\TransactionManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -39,9 +36,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\PageFile.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\BpTree.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\QueryManager.hpp">
@@ -78,6 +72,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\RecordFileManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\IndexHandle.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\IndexScan.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RecordFileScan.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BpTreeNode.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

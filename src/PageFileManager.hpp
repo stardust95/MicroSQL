@@ -2,6 +2,10 @@
 
 /*
 	1. 只管理各种文件, 与Buffer无关
+	2. File的第一个Page存PageFileHeader结构体
+
+
+
 */
 
 #include "Utils.hpp"
@@ -35,35 +39,71 @@ PageFileManager::~PageFileManager ( ) {
 
 inline RETCODE PageFileManager::CreateFile (const char * fileName) {
 
-	std::ofstream newfile;
+	RETCODE result;
 
-	newfile.open (fileName);
+	PageFileHeader header;
+	PageFilePtr pageFile;
+	PagePtr page;
 
+	if ( fileName == nullptr )
+		return RETCODE::CREATEFAILED;
 
+	if ( Utils::IsFileExist (fileName) ) {
+		return RETCODE::FILEEXISTS;
+	}
+
+	std::ofstream newfile (fileName);
 
 	newfile.close ( );
+
+	pageFile = make_shared<PageFile> (fileName);
+
+	if ( result = pageFile->AllocatePage (page) ) {			// allocate the header page
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
+
+	
+	if ( result = pageFile->SetHeader (header) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
+
+	return result;
+}
+
+inline RETCODE PageFileManager::DestroyFile (const char * fileName) {
+
+	if ( remove (fileName) ) {
+		return RETCODE::INCOMPLETEWRITE;
+	}
 
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE PageFileManager::DestroyFile (const char * fileName) {
-	return RETCODE ( );
-}
-
 inline RETCODE PageFileManager::OpenFile (const char * fileName, PageFilePtr & fileHandle) {
+
+	RETCODE result;
 
 	fileHandle = make_shared<PageFile> (fileName);
 
-	fileHandle->Open ( );
+	if ( result = fileHandle->ReadHeader ( ) ){
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
 
-	return RETCODE ( );
+	return result;
 }
 
 inline RETCODE PageFileManager::CloseFile (PageFilePtr & fileHandle) {
 	RETCODE result;
 
-	if ( ( result = fileHandle->Close ( ) ) ) {
-		Utils::PrintRetcode (result);
+	if ( !fileHandle->IsOpen ( ) ) {
+		return RETCODE::COMPLETE;
+	}
+
+	if ( result = fileHandle->Close ( ) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 

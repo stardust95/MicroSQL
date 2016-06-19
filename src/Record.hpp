@@ -28,6 +28,9 @@ private:
 
 };
 
+static RecordIdentifier INVALIDRID{Utils::UNKNOWNPAGENUM, Utils::UNKNOWNSLOTNUM};
+
+
 using RecordPtr = shared_ptr<Record>;
 
 Record::Record ( ) {

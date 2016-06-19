@@ -22,10 +22,13 @@
     <ClCompile Include="src\Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\BpTree.hpp" />
+    <ClInclude Include="src\BpTreeNode.hpp" />
     <ClInclude Include="src\ConnectionManager.hpp" />
+    <ClInclude Include="src\RecordFileScan.hpp" />
     <ClInclude Include="src\HashTable.hpp" />
+    <ClInclude Include="src\IndexHandle.hpp" />
     <ClInclude Include="src\IndexManager.hpp" />
+    <ClInclude Include="src\IndexScan.hpp" />
     <ClInclude Include="src\LogManager.hpp" />
     <ClInclude Include="src\Page.hpp" />
     <ClInclude Include="src\PageFile.hpp" />
@@ -37,7 +40,6 @@
     <ClInclude Include="src\RecordIdentifier.hpp" />
     <ClInclude Include="src\RecordFileManager.hpp" />
     <ClInclude Include="src\Server.hpp" />
-    <ClInclude Include="src\SQLManager.hpp" />
     <ClInclude Include="src\SystemManager.hpp" />
     <ClInclude Include="src\Transaction.hpp" />
     <ClInclude Include="src\TransactionManager.hpp" />

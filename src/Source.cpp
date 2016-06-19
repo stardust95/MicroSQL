@@ -1,18 +1,27 @@
 #include "Utils.hpp"
 #include "Server.hpp"
+#include "IndexManager.hpp"
+
 
 #include <iostream>
 #include <vector>
 
 
+using namespace std;
+
 int main ( ) {
 
-	Server server;
+	IndexManagerPtr ixMgr = make_shared<IndexManager> ( );
+
+	RecordFileManagerPtr recMgr = make_shared<RecordFileManager> ( );
+
+	const char * filename = "table.attrName";
 	
-	RecordFileManagerPtr recordMgr = make_shared<RecordFileManager> ( );
+	SystemManagerPtr sysMgr = make_shared<SystemManager>(ixMgr, recMgr);
 
-	recordMgr->CreateFile ("testfile", 100);
+	//SystemManager::CreateDb ("testdb", 2, nullptr);
 
-
+	system ("pause");
+	return 0;
 }
 

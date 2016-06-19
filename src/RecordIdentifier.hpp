@@ -17,6 +17,15 @@ public:
 
 	RETCODE GetSlotNum (SlotNum &) const;
 
+	friend bool operator == (const RecordIdentifier & lhs, const RecordIdentifier & rhs) {
+		return lhs._pageNum == rhs._pageNum && lhs._slotNum == rhs._slotNum;
+	}
+
+	friend std::ostream & operator << (std::ostream & out, const RecordIdentifier & rid) {
+		out << "(" << rid._pageNum << "," << rid._slotNum << ")";
+		return out;
+	}
+
 private:
 
 	PageNum _pageNum;
@@ -24,6 +33,8 @@ private:
 	SlotNum _slotNum;
 
 };
+
+using RecordIdentifierPtr = shared_ptr<RecordIdentifier>;
 
 RecordIdentifier::RecordIdentifier ( ) {
 }

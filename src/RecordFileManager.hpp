@@ -58,7 +58,7 @@ inline RETCODE RecordFileManager::DestroyFile (const char * fileName) {
 	RETCODE result;
 
 	if ( result = _pfMgr->DestroyFile (fileName) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -70,7 +70,7 @@ inline RETCODE RecordFileManager::OpenFile (const char * fileName, RecordFilePtr
 	PageFilePtr ptr;
 
 	if ( ( result = _pfMgr->OpenFile (fileName, ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
@@ -83,11 +83,11 @@ inline RETCODE RecordFileManager::CloseFile (RecordFilePtr & fileHandle) {
 	RETCODE result;
 	PageFilePtr ptr;
 	if ( ( result = fileHandle->GetPageFilePtr (ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 	if ( ( result = _pfMgr->CloseFile (ptr) ) ) {
-		Utils::PrintRetcode (result);
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
