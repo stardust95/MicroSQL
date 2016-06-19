@@ -40,7 +40,6 @@
     <ClInclude Include="src\RecordIdentifier.hpp" />
     <ClInclude Include="src\RecordFileManager.hpp" />
     <ClInclude Include="src\Server.hpp" />
-    <ClInclude Include="src\SQLManager.hpp" />
     <ClInclude Include="src\SystemManager.hpp" />
     <ClInclude Include="src\Transaction.hpp" />
     <ClInclude Include="src\TransactionManager.hpp" />

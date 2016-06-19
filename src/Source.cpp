@@ -13,13 +13,13 @@ int main ( ) {
 
 	IndexManagerPtr ixMgr = make_shared<IndexManager> ( );
 
+	RecordFileManagerPtr recMgr = make_shared<RecordFileManager> ( );
+
 	const char * filename = "table.attrName";
+	
+	SystemManagerPtr sysMgr = make_shared<SystemManager>(ixMgr, recMgr);
 
-	IndexHandlePtr index;
-
-	ixMgr->CreateIndex (filename, INT, 4);
-
-	ixMgr->OpenIndex (filename, index);
+	//SystemManager::CreateDb ("testdb", 2, nullptr);
 
 	system ("pause");
 	return 0;

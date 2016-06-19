@@ -76,10 +76,12 @@ enum RETCODE {
 	PAGENUMNOTFOUND,	// the page is not in buffer
 
 	CREATEFAILED,		// cannot create index handle
+	INVALIDINDEX,		// the index file is not expected
+	FILEEXISTS,				// the file already exists
 };
 
 enum AttrType {
-	INT,
+	INT = 0x10,
 	FLOAT,
 	STRING
 };
@@ -94,12 +96,46 @@ enum CompOp {
 	NO_OP	, //no comparison (when value is a null pointer)
 };
 
+// Used by SM_Manager::CreateTable
+struct AttrInfo {
+	char     *attrName;   /* attribute name       */
+	AttrType attrType;    /* type of attribute    */
+	int      attrLength;  /* length of attribute  */
+};
+
+struct RelAttr {
+	char     *relName;    // Relation name (may be NULL)
+	char     *attrName;   // Attribute name
+
+						  // Print function
+	friend std::ostream &operator<<(std::ostream &s, const RelAttr &ra);
+};
+
+struct Value {
+	AttrType type;         /* type of value               */
+	void     *data;        /* value                       */
+						   /* print function              */
+	friend std::ostream &operator<<(std::ostream &s, const Value &v);
+};
+
+struct Condition {
+	RelAttr  lhsAttr;    /* left-hand side attribute            */
+	CompOp   op;         /* comparison operator                 */
+	int      bRhsIsAttr; /* TRUE if the rhs is an attribute,    */
+						 /* in which case rhsAttr below is valid;*/
+						 /* otherwise, rhsValue below is valid.  */
+	RelAttr  rhsAttr;    /* right-hand side attribute            */
+	Value    rhsValue;   /* right-hand side value                */
+						 /* print function                               */
+	friend std::ostream &operator<<(std::ostream &s, const Condition &c);
+
+};
+
 namespace Utils{ 
 	
 	/*
 		Limitations
 	*/
-
 	const size_t UNKNOWNPOS = -1;
 
 	const size_t UNKNOWNSLOTNUM = -1;
@@ -117,6 +153,8 @@ namespace Utils{
 	const char RECORDFILEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL RecordFile";
 
 	const char PAGEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL Page";
+
+	const char INDEXIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL IndexHandle";
 
 	/*
 		Server Settings
@@ -169,19 +207,25 @@ namespace Utils{
 		case OUTOFRANGE: return "the index is out of range"; break;
 		case BADKEY: return "the key is not satisfies the attrType or length"; break;
 		case ENTRYEXISTS: return "the same entry already exists"; break;
-		case INVALIDOPEN: return "cannot open index (invalid parameters)"; break;
+		case INVALIDOPEN: return "cannot open file"; break;
 		case PAGENUMNOTFOUND: return "the page is not in buffer"; break;
 		case CREATEFAILED: return "cannot create file or index"; break;
+		case INVALIDINDEX: return "the index file is not expected"; break;
 
+		case FILEEXISTS: return "the file already exists"; break;
 		default: return "Unknown RETCODE"; break;
 		}
 	}
 
 
-	void PrintRetcode (RETCODE code, std::string func, int line) {
-		std::cout << func << "(" << line << ")" << ": " << Utils::GetRetcodeMessage (code) << std::endl;
+	void PrintRetcode (RETCODE code, std::string func, int line, std::string msg = "") {
+		std::cout << func << "(" << line << ")" << ": " << Utils::GetRetcodeMessage (code) << " : " << msg << std::endl;
 	}
 
+	bool IsFileExist (const char * filename) {
+		std::ifstream infile (filename);
+		return infile.good ( );
+	}
 
 
 }

@@ -3,7 +3,7 @@
 /*
 	1. QueryManager可以直接操作这个类的成员函数, 用于执行数据的更改
 	2. 每个打开的RecordFile单独一个Buffer, 需要用到某个页面时先访问BufferManager要
-	3. 每个PageFile的第一个Page先存PageFileHeader, 之后存RecordFileHeaedr
+	3. 每个PageFile的第一个Page先存PageFileHeader, 第二个Page存RecordFileHeaedr
 */
 
 #include "Utils.hpp"
@@ -19,6 +19,7 @@ struct RecordFileHeader {								// stored in the first page (PageNum = 0) of ev
 	DataPtr bitMap;					// the length of bitmap = recordsPerPage; each record use 1 bit
 
 	RecordFileHeader ( ) {
+		memset (identifyString, 0, sizeof ( identifyString ));
 		strcpy_s (identifyString, Utils::RECORDFILEIDENTIFYSTRING);
 		bitMap = nullptr;
 		recordSize = recordsPerPage = 0;
@@ -180,7 +181,7 @@ inline RETCODE RecordFile::ReadHeader ( ) {
 	char* pData;
 	RETCODE result;
 
-	if ( ( result = _bufMgr->GetPage(0, page) ) ) {
+	if ( ( result = _bufMgr->GetPage(1, page) ) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}

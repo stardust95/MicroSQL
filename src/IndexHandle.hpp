@@ -3,10 +3,11 @@
 /*
 	1. IndexHandle用于操作(查询, 插入, 删除)一个索引, 与大多数数据库采用的索引相同, 当前其内部实现也为B+树
 	2. 每个结点的大小为Utils::PAGESIZE, 存放的Key
-	3. 每个PageFile的第一个Page(PageNum = 0)先存PageFileHeader, 再存IndexHeader.
+	3. 每个PageFile的第一个Page(PageNum = 0)先存PageFileHeader, 第二个page(PageNum = 1)再存IndexHeader.
 	4. 一个文件当做一段连续的内存, 指向子节点的指针就是在文件中的偏移
 	5. 叶节点和内部结点都统一用一种struct来存
-
+	6. RootPage的PageNum不一定是2, 根据IndexHandleHeader决定
+	
 
 */
 
@@ -15,6 +16,9 @@
 #include "BpTreeNode.hpp"
 
 struct IndexHeader {				// the information of every index
+
+	char identifyString[Utils::IDENTIFYSTRINGLEN];
+
 	AttrType attrType;
 	
 	PageNum rootPage;
@@ -27,7 +31,12 @@ struct IndexHeader {				// the information of every index
 
 	size_t height;
 
-
+	IndexHeader() {
+		memset (identifyString, 0, sizeof ( identifyString ));
+		strcpy_s (identifyString, Utils::INDEXIDENTIFYSTRING);
+		rootPage = Utils::UNKNOWNPAGENUM;
+		attrLength = numPages = height = numMaxKeys = 0;
+	}
 
 };
 
@@ -61,6 +70,8 @@ private:
 	The file must be opened before any other operation
 	*/
 	RETCODE Open (BufferManagerPtr buf);
+
+	const static PageNum HEADERPAGE = 1;
 
 	bool IsValid ( ) const;
 
@@ -120,6 +131,43 @@ inline IndexHandle::IndexHandle () {
 }
 
 IndexHandle::~IndexHandle ( ) {
+	RETCODE result;
+
+	if ( bufMgr == nullptr ) {
+		Utils::PrintRetcode (RETCODE::HDRWRITE, __FUNCTION__, __LINE__);
+	}
+
+	if ( headerModified ) {
+		PagePtr rootpage;
+		char * pData;
+
+		if ( result = bufMgr->GetPage (HEADERPAGE, rootpage) ) {
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		}
+
+		if ( result = rootpage->GetData (pData) ) {
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		}
+
+		memcpy_s (pData, sizeof (IndexHeader), reinterpret_cast<const void *>(&header), sizeof(IndexHeader) );
+
+		if ( result = bufMgr->ForcePage (HEADERPAGE) ) {
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		}
+
+	}
+
+	for ( size_t i = 0; i < path.size ( ); i++ ) {
+		PageNum page = path[i]->GetPageNum ( );
+
+		if ( result = path[i]->writePage ( ) ) {
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		}
+		
+		if ( result = bufMgr->ForcePage (page) ) {
+			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		}
+	}
 
 }
 
@@ -129,15 +177,26 @@ The file must be opened before any other operation
 inline RETCODE IndexHandle::Open (BufferManagerPtr buf) {
 	PagePtr pagePtr;				// for root page
 	DataPtr pData;
-	RETCODE result;
+	RETCODE result = RETCODE::COMPLETE;
 
-	if ( buf == nullptr )
-		return RETCODE::INVALIDOPEN;
+	if ( bufMgr != nullptr || isOpenHandle ) {
+		result = RETCODE::FILEOPEN;
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
+
+	if ( buf == nullptr ) {
+		result = RETCODE::INVALIDOPEN;
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
 
 	bufMgr = buf;
 
-	ReadHeader ( );
-	SetHeight (header.height);
+	if ( result = ReadHeader ( ) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
 
 	isOpenHandle = true;
 	headerModified = false;
@@ -149,23 +208,24 @@ inline RETCODE IndexHandle::Open (BufferManagerPtr buf) {
 			return result;
 		}
 		pagePtr->GetPageNum (header.rootPage);
-		//header.height = 1;
+		root = make_shared<BpTreeNode> (header.attrType, header.attrLength, pagePtr, true);
 		SetHeight (1);
 	} else {
 		hasLeaf = true;
 		this->GetThisPage (header.rootPage, pagePtr);
+		root = make_shared<BpTreeNode> (header.attrType, header.attrLength, pagePtr, false);
+		SetHeight (header.height);
 	}
 	// lock root page
 	bufMgr->GetPage (header.rootPage, pagePtr);
-
-	root = make_shared<BpTreeNode> (header.attrType, header.attrLength, pagePtr);
 
 	path[0] = root;
 	headerModified = true;
 	largestKey = VoidPtr ( reinterpret_cast<void*>(new char[attrLen()]() ) );
 	if ( hasLeaf ) {
 		BpTreeNodePtr largestLeaf = FindLargestLeaf ( );
-		largestLeaf->CopyKeyTo (largestLeaf->GetNumKeys ( ) - 1, largestKey.get());
+		if( largestLeaf->GetNumKeys() > 0 )
+			largestLeaf->CopyKeyTo (largestLeaf->GetNumKeys ( ) - 1, largestKey.get());
 	}
 	return result;
 }
@@ -183,14 +243,24 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 	void * prevKey = nullptr;
 
 	assert (node != nullptr);
+	// check if the entry(key, rid) is already exists
+	size_t keyPos;
 
-	size_t fitPos = node->FindKey (pData, rid);
-	if ( fitPos != RETCODE::KEYNOTFOUND )
+	if ( result = node->FindKey (pData, rid, keyPos) ) {		// Acutally is { key, rid } Not found
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
+
+	if ( keyPos != Utils::UNKNOWNPOS ) {
 		return RETCODE::ENTRYEXISTS;
+	}
 
 	if ( node->GetNumKeys ( ) == 0 || node->comp (pData, largestKey.get()) > 0 ){		// if is new key is the largest key
 		newLargest = true;
 		prevKey = largestKey.get ( );
+		//void * tmp;
+		//root->GetKey (root->GetMaxKeys ( ) - 1, tmp);
+		//assert (prevKey == tmp);
 	}
 
 	if ( (result = node->Insert (pData, rid)) && result != RETCODE::NODEKEYSFULL ) {
@@ -202,8 +272,12 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 	if ( newLargest ) {
 		for ( size_t i = 0; i < height ( ); i++ ) {
 			size_t pos = path[i]->FindKey (prevKey);
-			if ( pos != RETCODE::KEYNOTFOUND )			// here the condition must be true (i.e. the prevKey(currently largest) should be found found)
+			if ( pos != Utils::UNKNOWNPOS ){			// here the condition must be true (i.e. the prevKey(currently largest) should be found found)
 				path[i]->SetKey (pos, pData);
+				bufMgr->MarkDirty (path[i]->GetPageNum ( ));
+			} else {		// if the root is empty
+				// TODO: 
+			}
 		}
 
 		memcpy_s (largestKey.get ( ), attrLen ( ), pData, attrLen ( ));
@@ -229,7 +303,7 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 			return result;
 		}
 
-		newNode = make_shared<BpTreeNode> (attrType ( ), attrLen ( ), pagePtr);
+		newNode = make_shared<BpTreeNode> (attrType ( ), attrLen ( ), pagePtr, true);
 		
 		if ( result = node->Split (*newNode.get ( )) ) {
 			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
@@ -278,6 +352,10 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 		failedKey = node->LargestKey ( );
 		failedRid = node->GetPageRid ( );
 
+		bufMgr->MarkDirty (node->GetPageNum ( ));
+		bufMgr->MarkDirty (newNode->GetPageNum ( ));
+		bufMgr->MarkDirty (parent->GetPageNum ( ));
+
 		newNode = nullptr;
 	}
 
@@ -297,7 +375,7 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 			return result;
 		}
 
-		root = make_shared<BpTreeNode> (attrType ( ), attrLen ( ), pagePtr);
+		root = make_shared<BpTreeNode> (attrType ( ), attrLen ( ), pagePtr, true);
 
 		root->Insert (node->LargestKey ( ), node->GetPageRid ( ));
 		root->Insert (newNode->LargestKey ( ), newNode->GetPageRid ( ));
@@ -316,7 +394,7 @@ inline RETCODE IndexHandle::InsertEntry (void * pData, const RecordIdentifier & 
 
 
 	/*MarkDirty and UnLock*/
-	//bufMgr->MarkDirty()
+	
 	headerModified = true;
 	header.numPages++;
 	return RETCODE::COMPLETE;
@@ -348,7 +426,7 @@ inline RETCODE IndexHandle::ReadHeader ( ) {
 	char * pData;
 	RETCODE result;
 
-	if ( result = bufMgr->GetPage (0, pagePtr) ) {
+	if ( result = bufMgr->GetPage ( HEADERPAGE, pagePtr) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
@@ -358,10 +436,12 @@ inline RETCODE IndexHandle::ReadHeader ( ) {
 		return result;
 	}
 	
-	memcpy_s (reinterpret_cast< void* >( &header ), 
-						sizeof (IndexHeader), 
-						pData + sizeof(PageFileHeader),			// read from a header must add the offset of the PageFileHeader 
-						sizeof (IndexHeader));
+	memcpy_s (reinterpret_cast< void* >( &header ), sizeof (IndexHeader), pData, sizeof (IndexHeader));
+
+	if ( strcmp (header.identifyString, Utils::INDEXIDENTIFYSTRING) != 0 ) {
+		Utils::PrintRetcode (RETCODE::INVALIDINDEX, __FUNCTION__, __LINE__);
+		return RETCODE::INVALIDINDEX;
+	}
 
 	return RETCODE::COMPLETE;
 }
@@ -386,7 +466,7 @@ inline BpTreeNodePtr IndexHandle::FetchNode (const RecordIdentifier & rid) const
 		return nullptr;
 	}
 
-	return make_shared<BpTreeNode> (BpTreeNode (attrType ( ), attrLen ( ), pagePtr));
+	return make_shared<BpTreeNode> (attrType ( ), attrLen ( ), pagePtr, false);
 
 }
 
@@ -397,6 +477,7 @@ inline BpTreeNodePtr IndexHandle::FindLargestLeaf ( ) {
 
 	if ( root == nullptr )
 		return nullptr;
+
 	if ( height ( ) == 1 ) {
 		path[0] = root;
 		return root;
@@ -501,6 +582,10 @@ inline BpTreeNodePtr IndexHandle::FindLeaf (void * pData) {
 	}
 
 	return path[height()-1];
+}
+
+inline bool IndexHandle::IsValid ( ) const {
+	return strcmp(header.identifyString, Utils::INDEXIDENTIFYSTRING) == 0 ;
 }
 
 inline RETCODE IndexHandle::GetThisPage (PageNum page, PagePtr & pagePtr) {

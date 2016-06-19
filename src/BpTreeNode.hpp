@@ -6,6 +6,7 @@
 	对于内部结点, rids.page定位子节点的PageNum
 	2. 对于B+树, 除了根之外每个结点(内部/叶)包含[floor(m/2), m-1]个key
 	每个结点最多有m个child指针(总是比key个数多1)
+	3. 在析构时要把数据复制到pagePtr的pData
 
 */
 
@@ -36,6 +37,12 @@ struct BpTreeNodeHeader {
 
 	size_t attrLen;
 
+	BpTreeNodeHeader() {
+		identifyChar = 'B';
+		attrLen = maxKeys = numKeys = 0 ;
+		parentNode = page = prevNode = nextNode = Utils::UNKNOWNPAGENUM;
+	}
+
 };
 
 class BpTreeNode {
@@ -47,7 +54,7 @@ public:
 
 	using Comparator = int (*) ( void *, void *, size_t );
 
-	BpTreeNode (AttrType , size_t , PagePtr );
+	BpTreeNode (AttrType , size_t , PagePtr, bool );
 
 	~BpTreeNode ( );
 
@@ -125,6 +132,8 @@ private:
 
 	RecordIdentifier ridAt (size_t) const;
 
+	RETCODE writePage ( ) const;
+
 	Comparator _comp;
 
 	/*
@@ -143,7 +152,11 @@ private:
 
 };
 
-BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page) {
+/*
+	if newNode is true, write the data to the page
+	if newNode is false, read header from the page
+*/
+BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page, bool newNode) {
 	char* pData;
 	RETCODE result;
 
@@ -151,31 +164,43 @@ BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return;
 	}
-	
-	header.type = _type;
-	
-	header.attrLen = _attrLen;
 
 	pagePtr = _page;
+	
+	pagePtr->GetPageNum (header.page);
 
-	switch ( header.type ) {
-	case INT:
-		_comp = CompMethod::compare_int;
-		break;
-	case FLOAT:
-		_comp = CompMethod::compare_float;
-		break;
-	case STRING:
-		_comp = CompMethod::compare_string;
-		break;
-	default:
-		_comp = nullptr;
-		break;
+	if ( newNode ) {
+
+		header.type = _type;
+
+		header.attrLen = _attrLen;
+
+		switch ( header.type ) {
+		case INT:
+			_comp = CompMethod::compare_int;
+			break;
+		case FLOAT:
+			_comp = CompMethod::compare_float;
+			break;
+		case STRING:
+			_comp = CompMethod::compare_string;
+			break;
+		default:
+			_comp = nullptr;
+			break;
+		}
+
+		memcpy_s (pData, sizeof (BpTreeNodeHeader), reinterpret_cast< const void* >( &header ), sizeof (BpTreeNodeHeader));
+
+	} else {		// is node new node, read the header info from file
+
+		memcpy_s (reinterpret_cast< void* >( &header ), sizeof (BpTreeNodeHeader), pData, sizeof (BpTreeNodeHeader));
+
 	}
 
-	memcpy_s (reinterpret_cast< void* >( &header ), sizeof (BpTreeNodeHeader), pData, sizeof (BpTreeNodeHeader));
-
 	keys = pData+sizeof(header);
+
+	pData += sizeof (header);
 
 	rids = reinterpret_cast< RecordIdentifier *>( pData + attrLen ( ) * header.numKeys );
 
@@ -183,11 +208,15 @@ BpTreeNode::BpTreeNode (AttrType _type, size_t _attrLen, PagePtr  _page) {
 }
 
 inline BpTreeNode::~BpTreeNode ( ) {
+	if ( this->pagePtr != nullptr ) {
+		this->writePage ( );
+	} else {
+		Utils::PrintRetcode (RETCODE::INCOMPLETEWRITE, __FUNCTION__, __LINE__);
+	}
 }
 
 inline RETCODE BpTreeNode::Insert (void * newKey, const RecordIdentifier & rid) {
 
-	//if ( GetNumKeys ( ) + 1 >= GetMaxKeys ( ) ) {
 	if ( GetNumKeys ( ) + 1 >= GetMaxKeys ( ) ) {
 		return RETCODE::NODEKEYSFULL;
 	}
@@ -206,6 +235,8 @@ inline RETCODE BpTreeNode::Insert (void * newKey, const RecordIdentifier & rid) 
 	rids[i] = rid;
 
 	SetNumKeys (GetNumKeys ( ) + 1);
+
+	
 	return RETCODE::COMPLETE;
 }
 
@@ -290,6 +321,32 @@ inline RecordIdentifier BpTreeNode::ridAt (size_t i) const {
 	return INVALIDRID;
 }
 
+inline RETCODE BpTreeNode::writePage ( ) const {
+	RETCODE result = RETCODE::COMPLETE;
+	char * pData;
+
+	if ( result = pagePtr->GetData (pData) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
+	
+	memcpy_s (pData, sizeof (BpTreeNodeHeader), reinterpret_cast<const void* >( &header ), sizeof (BpTreeNodeHeader));
+
+	pData += sizeof (BpTreeNodeHeader);
+
+	size_t keySize = GetNumKeys ( ) * attrLen ( );
+
+	memcpy_s (pData, keySize, keys, keySize);
+
+	pData += GetNumKeys ( ) * attrLen ( );
+
+	size_t ridSize = sizeof (GetNumKeys ( ) * sizeof (RecordIdentifier));
+
+	memcpy_s (pData, ridSize, rids, ridSize);
+	
+	return result;
+}
+
 inline PageNum BpTreeNode::GetRight ( ) const {
 	return header.nextNode;
 }
@@ -311,15 +368,15 @@ inline RETCODE BpTreeNode::SetLeft (PageNum page) {
 
 RETCODE BpTreeNode::FindKey (void * key, const RecordIdentifier & rid, size_t & keyPos) const {
 	
+	keyPos = Utils::UNKNOWNPOS;
+	
 	for ( size_t i = 0; i < this->GetNumKeys ( ); ++i ) {
 		if ( comp (key, keyAt(i) ) == 0 && (rid == INVALIDRID || rid == ridAt(i)) ) {	// if rid is INVALIDRID, only compare the rid
 			keyPos = i;
-			return RETCODE::COMPLETE;
 		}
 	}
-
-
-	return RETCODE::KEYNOTFOUND;
+	
+	return RETCODE::COMPLETE;
 }
 
 inline size_t BpTreeNode::FindKey (void * key, const RecordIdentifier & rid) const{

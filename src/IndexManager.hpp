@@ -47,7 +47,7 @@ inline RETCODE IndexManager::CreateIndex (const char * fileName, AttrType attrTy
 	BufferManagerPtr bufMgr;
 	RETCODE result;
 
-	if ( result = _pfMgr->CreateFile (fileName) ) {
+	if ( (result = _pfMgr->CreateFile (fileName)) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
@@ -59,10 +59,10 @@ inline RETCODE IndexManager::CreateIndex (const char * fileName, AttrType attrTy
 
 	bufMgr = make_shared<BufferManager> (pagefile);
 
-	PagePtr headerPage;
+	PagePtr headerPage;					// pageNum = 1;
 	char * pData;
 
-	if ( result = bufMgr->AllocatePage (headerPage) ) {
+	if ( result = bufMgr->AllocatePage (headerPage) ) {	
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
@@ -78,6 +78,7 @@ inline RETCODE IndexManager::CreateIndex (const char * fileName, AttrType attrTy
 	header.numPages = 1;		// must have one header page
 	header.numMaxKeys = ( Utils::PAGESIZE - sizeof (BpTreeNodeHeader) ) / ( sizeof (attrLength) + sizeof (RecordIdentifier) );
 	header.rootPage = -1;
+	header.height = 0;
 
 	memcpy_s (pData, sizeof (IndexHeader), reinterpret_cast< void* >( &header ), sizeof (IndexHeader));
 

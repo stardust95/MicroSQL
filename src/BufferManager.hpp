@@ -75,6 +75,10 @@ BufferManager::BufferManager (const PageFilePtr & ptr) {
 
 BufferManager::~BufferManager ( ) {
 
+	this->FlushPages ( );
+
+
+
 }
 
 /*
@@ -139,12 +143,12 @@ inline RETCODE BufferManager::GetPage ( PageNum page, PagePtr & ptr) {
 		_bufferTbl.Insert (page, ptr);
 	}
 
-	if ( result = LockPage (page) ) {
+	if ( (result = LockPage (page)) && result != RETCODE::PAGELOCKNED ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
 
-	return result;
+	return RETCODE::COMPLETE;
 }
 
 /*
@@ -183,11 +187,17 @@ inline RETCODE BufferManager::WritePage ( PageNum page, char * source) const {
 		return result;
 	}
 
-	ptr->SetData (source);
+	if ( result = ptr->SetData (source) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
 
-	_pageFile->ForcePage (page);
+	if ( result = _pageFile->ForcePage (page, ptr) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}
 	
-	return RETCODE::COMPLETE;
+	return result;
 }
 
 inline RETCODE BufferManager::MarkDirty ( PageNum page) {
@@ -242,27 +252,39 @@ inline RETCODE BufferManager::UnlockPage ( PageNum page) {
 
 inline RETCODE BufferManager::ForcePage (PageNum page) {
 	
-	return _pageFile->ForcePage (page);
-
-
-	//return RETCODE::COMPLETE;
-}
-
-inline RETCODE BufferManager::FlushPages () {			// TODO: How to write page to disk file
+	PagePtr pagePtr;
 	RETCODE result;
-	vector<PageNum> vec;
 
-	if ( (result = _pageFile->Open ( ) ) && result != RETCODE::FILEOPEN ) {
+	if ( result = _bufferTbl.Find (page, pagePtr) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
+	
+	return _pageFile->ForcePage (page, pagePtr);
+
+}
+
+inline RETCODE BufferManager::FlushPages () {			// TODO: How to write page to disk file
+	RETCODE result = RETCODE::COMPLETE;
+	vector<PageNum> vec;
+	PagePtr page;
+/*
+	if ( (result = _pageFile->OpenWrite ( ) ) && result != RETCODE::FILEOPEN ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+		return result;
+	}*/
 
 	_bufferTbl.Keys (vec);
 
 	for ( auto item : vec ) {			// flush all pages
-		if ( _dirtyMap[item] )		// if the page is modified, write to the disk file
-			_pageFile->ForcePage (item);
-
+		if ( _dirtyMap[item] ){		// if the page is modified, write to the disk file
+			_bufferTbl.Find (item, page);
+			if ( result = _pageFile->ForcePage (item, page) ) {
+				Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+				return result;
+			}
+			_dirtyMap[item] = false;
+		}
 	}
 
 	return result;
