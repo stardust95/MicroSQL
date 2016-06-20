@@ -33,7 +33,7 @@ MicroSQL是一个轻量级的关系型数据库, 框架的设计思路主要根�
 #### 2.1 Page File Manager(PF)
 PF模块是系统的最底层模块, 主要向高层次的结构(Index Manager和Record Manager)提供以页为基本单元的文件IO操作. 在该模块中, 主要实现了创建, 删除, 打开和关闭文件四个操作. 
 对于单个文件(PageFile类)的操作, 必须先从PF模块打开一个PageFile实例为操作对象, 以页(Page)为最小访问单元. PageFile提供了从文件中获取一个新的Page, 获取一个特定页号的Page, 强制更新(Force)文件中特定页号的Page等方法. 
-实际上, 由于文件系统IO速度比较慢, 为了提高获取数据的速度, PM模块还需要对每个文件维护一个Buffer(BufferManager类). 每个BufferManager实例管理一个PageFile实例以及一个Buffer(在内存中), 上层模块只能通过BufferManager来间接地访问PageFile获取所需Page. 
+实际上, 由于文件系统IO速度比较慢, 为了提高获取数据的速度, PM模块还需要对每个文件维护一个Buffer(BufferManager类). 每个BufferManager实例管理一个PageFile实例以及一个Buffer(用哈希表结构存储在内存中), 上层模块只能通过BufferManager来间接地访问PageFile获取所需Page. 
 
 #### 2.2 Record Manager(RM)
 RM模块是管理记录文件的模块, 主要面向Query Manager和System Manager两个模块. RM模块只提供了对记录文件的创建, 删除, 打开和关闭四个操作. 
@@ -58,7 +58,9 @@ QM模块与SM模块类似，主要向Command Parser提供了用于执行特定�
 
 ## 三. 重要接口
 
-#### 2.1 Page File Manager(PF)
+### 2.1 PF模块
+#### PageManager类
+
 `RETCODE CreateFile (const char * fileName);       // Create a new file`
 创建一个新的文件(索引的结点或是记录文件)
 
@@ -66,21 +68,122 @@ QM模块与SM模块类似，主要向Command Parser提供了用于执行特定�
 删除一个文件
 
 `RETCODE OpenFile (const char * fileName, PageFilePtr & fileHandle);		// Open a file`
-
+打开一个文件并获取该文件的PageFile实例
 
 `RETCODE CloseFile (PageFilePtr &fileHandle);				// Close a file`
+关闭一个文件并释放PageFile实例
 
-#### 2.2 Record Manager(RM)
+#### PageFile类(只能由BufferManager调用)
+`RETCODE GetThisPage (PageNum pageNum, PagePtr &pageHandle) ;`
+获取该文件中特定一页, 返回Page实例
 
-#### 2.3 Index Manager(IX)
+`RETCODE AllocatePage (PagePtr &pageHandle);`
+分配一个新的页, 返回Page实例
 
-#### 2.4 System Manager(SM)
+`RETCODE DisposePage (PageNum pageNum);`
+释放(不再使用)特定的页
+
+`RETCODE ForcePage (PageNum page, const PagePtr & pageHande);`
+强制把一个页写入文件中的特定页中
+
+#### BufferManager类(由其他类调用, 间接操作PageFile)
+
+`RETCODE GetPage (PageNum page, PagePtr & pBuffer);	`
+获取一个特定的页, 返回Page实例
+
+`RETCODE MarkDirty (PageNum page);`
+把一个页标记为Dirty(修改过)
+
+`RETCODE LockPage (PageNum page);`
+把一个页锁定在Buffer中
+
+`RETCODE UnlockPage (PageNum page);`
+把一个已锁定的页释放
+
+`RETCODE ForcePage (PageNum page);`
+强制把一个页写入文件
+
+`RETCODE FlushPages ( );`
+把Buffer中的所有页写入文件
+
+`RETCODE AllocatePage (PagePtr & page);	`	
+分配一个新的页, 返回Page实例
+
+`RETCODE DisposePage (PageNum page);`
+释放特定的页
+
+### 2.2 RM模块
+
+
+### 2.3 IX模块
+
+
+### 2.4 SM模块
+#### SystemManager 类
+
+`RETCODE CreateDb (const char * dbName, PageFileManagerPtr & pfMgr);`
+创建一个新的数据库
+
+`RETCODE OpenDb (const char *dbName); `
+打开一个数据库
+
+`RETCODE CloseDb ( );  `
+关闭当前打开的数据库
+
+`RETCODE CreateTable (const char *relName, Create relation, int attrCount, AttrInfo *attributes);`
+(在当前打开的数据库中)创建表
+
+`RETCODE DropTable (const char *relName);`
+删除表
+
+`RETCODE CreateIndex (const char *relName, const char *attrName);`
+对某个表的一个属性建立索引
+
+`RETCODE DropIndex (const char *relName, Destroy index, const char *attrName);`
+删除索引
 
 #### 2.5 Query Manager(QM)
+
+`RETCODE Select (
+int           nSelAttrs,        //  查询的属性个数
+const RelAttr selAttrs[],       // 查询的属性
+int           nRelations,       // 查询的关系表个数
+const char * const relations[], // 查询的关系表
+int           nConditions,      //  查询的条件个数
+const Condition conditions[]);  // 查询的具体条件`
+根据传入的参数执行查询操作
+
+`RETCODE Insert (const char  *relName,           // relation to insert into
+int         nValues,            // # values to insert
+const Value values[]);          // values to insert`
+
+`RETCODE Delete (const char *relName,            // relation to delete from
+int        nConditions,         // # conditions in Where clause
+const Condition conditions[]);  // conditions in Where clause`
+
+
+`RETCODE Update (const char *relName,            // relation to update
+const RelAttr &updAttr,         // attribute to update
+const int bIsValue,             // 0/1 if RHS of = is attribute/value
+const RelAttr &rhsRelAttr,      // attr on RHS of =
+const Value &rhsValue,          // value on RHS of =
+int   nConditions,              // # conditions in Where clause
+const Condition conditions[]);  // conditions in Where clause`
 
 
 
 ## 四. 使用语法
+#### Select
+
+
+#### Insert
+
+
+#### Update
+
+
+#### Delete
+
 
 ## 五. 实际测试
 
