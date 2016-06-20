@@ -6,6 +6,7 @@
 
 #include "Utils.hpp"
 #include "Iterator.hpp"
+#include "Printer.hpp"
 #include "RecordFile.hpp"
 #include "SystemManager.hpp"
 #include "IndexManager.hpp"
@@ -101,6 +102,47 @@ inline RETCODE QueryManager::Select (int nSelAttrs, const RelAttr selAttrs[], in
 inline RETCODE QueryManager::Insert (const char * relName, int nValues, const Value values[]) {
 
 
+	RETCODE rc = smm->SemCheck (relName);
+	if ( rc != 0 ) return rc;
+
+	int attrCount;
+	DataAttrInfo* attr;
+	rc = smm->GetFromTable (relName, attrCount, attr);
+
+	if ( nValues != attrCount ) {
+		delete[] attr;
+		return RETCODE::INVALIDINSERT;
+	}
+
+	int size = 0;
+	for ( int i = 0; i < nValues; i++ ) {
+		if ( values[i].type != attr[i].attrType ) {
+			delete[] attr;
+			return RETCODE::TYPEMISMATCH;
+		}
+		size += attr[i].attrLength;
+	}
+
+	char * buf = new char[size];
+	int offset = 0;
+	for ( int i = 0; i < nValues; i++ ) {
+		assert (values[i].data != NULL);
+		memcpy (buf + offset,
+				values[i].data,
+				attr[i].attrLength);
+		offset += attr[i].attrLength;
+	}
+
+	rc = smm->LoadRecord (relName, size, buf);
+	if ( rc != 0 ) return rc;
+
+	Printer p (attr, attrCount);
+	p.PrintHeader (cout);
+	p.Print (cout, buf);
+	p.PrintFooter (cout);
+
+	delete[] attr;
+	delete[] buf;
 
 
 	return RETCODE::COMPLETE;

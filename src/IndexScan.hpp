@@ -19,7 +19,6 @@ public:
 
 private:
 
-	//std::vector<>
 
 };
 
@@ -27,4 +26,16 @@ IndexScan::IndexScan ( ) {
 }
 
 IndexScan::~IndexScan ( ) {
+}
+
+inline RETCODE IndexScan::OpenScan (const IndexHandle & indexHandle, CompOp compOp, void * value) {
+	
+}
+
+inline RETCODE IndexScan::GetNextEntry (RecordIdentifier & rid) {
+	return RETCODE ( );
+}
+
+inline RETCODE IndexScan::CloseScan ( ) {
+	return RETCODE ( );
 }

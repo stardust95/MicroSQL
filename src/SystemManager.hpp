@@ -13,6 +13,9 @@
 #include <set>
 
 class SystemManager {
+
+	friend class QueryManager;
+
 public:
 	SystemManager (const IndexManagerPtr & ixm, 
 								const RecordFileManagerPtr & rm);

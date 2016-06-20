@@ -27,6 +27,7 @@
     <ClInclude Include="src\ConnectionManager.hpp" />
     <ClInclude Include="src\Iterator.hpp" />
     <ClInclude Include="src\Predicate.hpp" />
+    <ClInclude Include="src\Printer.hpp" />
     <ClInclude Include="src\RecordFileScan.hpp" />
     <ClInclude Include="src\HashTable.hpp" />
     <ClInclude Include="src\IndexHandle.hpp" />
