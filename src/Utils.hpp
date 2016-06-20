@@ -9,6 +9,14 @@
 #include <vector>
 #include <iostream>
 
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
 
 /*
 	Standard Type Clarification
@@ -78,6 +86,17 @@ enum RETCODE {
 	CREATEFAILED,		// cannot create index handle
 	INVALIDINDEX,		// the index file is not expected
 	FILEEXISTS,				// the file already exists
+	BADRECORD,		// the record is not satisfies
+
+	UNEXPECTED,		// unexpected error
+	RECORDNOTFOUND, // annot find the record in RecordFile
+	TABLENOTFOUND,			// 
+	INVALIDTABLE,
+	BADATTR,
+	BADENTRY,
+	TYPEMISMATCH,
+	ENTRYNOTFOUND,
+	BADOP,
 };
 
 enum AttrType {
@@ -131,6 +150,9 @@ struct Condition {
 
 };
 
+
+
+
 namespace Utils{ 
 	
 	/*
@@ -155,6 +177,9 @@ namespace Utils{
 	const char PAGEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL Page";
 
 	const char INDEXIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL IndexHandle";
+
+	const char RECORDPAGEIDENTIFYSTRING[IDENTIFYSTRINGLEN] = "MicroSQL RecordPage";
+
 
 	/*
 		Server Settings
@@ -213,6 +238,8 @@ namespace Utils{
 		case INVALIDINDEX: return "the index file is not expected"; break;
 
 		case FILEEXISTS: return "the file already exists"; break;
+		case UNEXPECTED: return "unexpected error"; break;
+		case RECORDNOTFOUND: return "cannot find the record in RecordFile"; break;
 		default: return "Unknown RETCODE"; break;
 		}
 	}
@@ -311,3 +338,83 @@ namespace CompMethod {
 	}
 
 }
+
+
+
+struct DataAttrInfo {
+	char     relName[Utils::MAXNAMELEN];  // Relation name
+	char     attrName[Utils::MAXNAMELEN]; // Attribute name
+	int      offset;              // Offset of attribute 
+	AttrType attrType;            // Type of attribute 
+	int      attrLength;          // Length of attribute
+
+	DataAttrInfo ( ) {
+		memset (relName, 0, sizeof (relName));
+		memset (attrName, 0, sizeof (attrName));
+	}
+
+	DataAttrInfo (AttrInfo attr) {
+		memset (relName, 0, sizeof (relName));
+		memcpy_s (attrName, sizeof (attrName), attr.attrName, sizeof (attrName));
+		attrType = attr.attrType;
+		attrLength = attr.attrLength;
+	}
+
+	DataAttrInfo (char * buf) {
+		memcpy_s (this, DataAttrInfo::size ( ), buf, DataAttrInfo::size ( ));
+	}
+
+	static size_t size ( ) {
+		return sizeof (relName) + sizeof (attrName) + sizeof (attrType) + 2 * sizeof (int);
+	}
+
+	static size_t members ( ) {
+		return 5;
+	}
+
+};
+
+struct DataRelInfo {
+	// Default constructor
+	DataRelInfo ( ) {
+		memset (relName, 0, Utils::MAXNAMELEN);
+	}
+
+	DataRelInfo (char * buf) {
+		memcpy (this, buf, DataRelInfo::size ( ));
+	}
+
+	// Copy constructor
+	DataRelInfo (const DataRelInfo &d) {
+		strcpy_s (relName, d.relName);
+		recordSize = d.recordSize;
+		attrCount = d.attrCount;
+		numPages = d.numPages;
+		numRecords = d.numRecords;
+	};
+
+	DataRelInfo& operator=(const DataRelInfo &d) {
+		if ( this != &d ) {
+			strcpy_s (relName, d.relName);
+			recordSize = d.recordSize;
+			attrCount = d.attrCount;
+			numPages = d.numPages;
+			numRecords = d.numRecords;
+		}
+		return ( *this );
+	}
+
+	static unsigned int size ( ) {
+		return ( Utils::MAXNAMELEN ) + 4 * sizeof (int);
+	}
+
+	static unsigned int members ( ) {
+		return 5;
+	}
+
+	int      recordSize;            // Size per row
+	int      attrCount;             // # of attributes
+	int      numPages;              // # of pages used by relation
+	int      numRecords;            // # of records in relation
+	char     relName[Utils::MAXNAMELEN];    // Relation name
+};

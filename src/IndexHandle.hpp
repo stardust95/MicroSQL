@@ -7,7 +7,7 @@
 	4. 一个文件当做一段连续的内存, 指向子节点的指针就是在文件中的偏移
 	5. 叶节点和内部结点都统一用一种struct来存
 	6. RootPage的PageNum不一定是2, 根据IndexHandleHeader决定
-	
+	7. 通过ReadHeader读取文件中的Header信息, 通过SaveHeader把当前内存中的Header存到文件中
 
 */
 
@@ -57,12 +57,14 @@ public:
 	RETCODE ForcePages ( );                             // Copy all pages (the whole b+tree) to disk
 
 	RETCODE ReadHeader ( );
+	RETCODE SaveHeader ( ) const;
 
 	BpTreeNodePtr FetchNode (PageNum page) const;
 
 	BpTreeNodePtr FetchNode (const RecordIdentifier &) const;
 
 	BpTreeNodePtr FindLeaf (void * pData) ;
+
 	BpTreeNodePtr FindLargestLeaf ( ) ;
 
 private:
@@ -96,6 +98,7 @@ private:
 
 /* B+Tree Members */
 	BpTreeNodePtr root;
+
 	VoidPtr largestKey;
 
 /*	IndexHandle Members */
@@ -133,25 +136,9 @@ inline IndexHandle::IndexHandle () {
 IndexHandle::~IndexHandle ( ) {
 	RETCODE result;
 
-	if ( bufMgr == nullptr ) {
-		Utils::PrintRetcode (RETCODE::HDRWRITE, __FUNCTION__, __LINE__);
-	}
-
 	if ( headerModified ) {
-		PagePtr rootpage;
-		char * pData;
-
-		if ( result = bufMgr->GetPage (HEADERPAGE, rootpage) ) {
-			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
-		}
-
-		if ( result = rootpage->GetData (pData) ) {
-			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
-		}
-
-		memcpy_s (pData, sizeof (IndexHeader), reinterpret_cast<const void *>(&header), sizeof(IndexHeader) );
-
-		if ( result = bufMgr->ForcePage (HEADERPAGE) ) {
+		
+		if ( result = SaveHeader ( ) ) {
 			Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		}
 
@@ -405,12 +392,10 @@ inline RETCODE IndexHandle::ForcePages ( ) {
 	PagePtr headerPage;
 	RETCODE result;
 	
-	if ( result = bufMgr->GetPage (0, headerPage) ) {
+	if ( result = SaveHeader ( ) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
-
-	memcpy_s (headerPage->GetDataRawPtr(), sizeof (IndexHeader), reinterpret_cast< void* >( &header ), sizeof (IndexHeader));
 
 	if ( result = bufMgr->FlushPages ( ) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
@@ -444,6 +429,32 @@ inline RETCODE IndexHandle::ReadHeader ( ) {
 	}
 
 	return RETCODE::COMPLETE;
+}
+
+inline RETCODE IndexHandle::SaveHeader ( ) const{
+	PagePtr rootpage;
+	char * pData;
+	RETCODE result = RETCODE::COMPLETE;
+
+	if ( bufMgr == nullptr ) {
+		Utils::PrintRetcode (RETCODE::HDRWRITE, __FUNCTION__, __LINE__);
+	}
+
+	if ( result = bufMgr->GetPage (HEADERPAGE, rootpage) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+	}
+
+	if ( result = rootpage->GetData (pData) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+	}
+
+	memcpy_s (pData, sizeof (IndexHeader), reinterpret_cast< const void * >( &header ), sizeof (IndexHeader));
+
+	if ( result = bufMgr->ForcePage (HEADERPAGE) ) {
+		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
+	}
+
+	return result;
 }
 
 inline BpTreeNodePtr IndexHandle::FetchNode (PageNum page) const {

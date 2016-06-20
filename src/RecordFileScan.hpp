@@ -92,7 +92,7 @@ inline RETCODE RecordFileScan::OpenScan (const RecordFilePtr & fileHandle, AttrT
 	if ( fileHandle == nullptr || !fileHandle->isValidRecordFile ( ) )
 		return RETCODE::INVALIDPAGEFILE;
 
-	RecordFile::RecordFileHeader header;
+	RecordFileHeader header;
 
 	_recFile->GetHeader (header);
 
@@ -140,9 +140,9 @@ inline RETCODE RecordFileScan::OpenScan (const RecordFilePtr & fileHandle, AttrT
 		if ( ( attrType == AttrType::INT || attrType == AttrType::FLOAT ) && attrLength != 4 )
 			return RETCODE::INVALIDSCAN;
 
-		_attrValue = shared_ptr<void> (reinterpret_cast< void* >( new char[attrLength] ( ) ));
+		_attrValue =  reinterpret_cast< void* >( new char[attrLength] ( ) );
 
-		memcpy_s (_attrValue.get ( ), attrLength, value, attrLength);
+		memcpy_s (_attrValue, attrLength, value, attrLength);
 
 	} 
 
@@ -166,7 +166,7 @@ inline RETCODE RecordFileScan::GetNextRec (Record & rec) {
 	
 	Record tmpRec;
 	RETCODE result;
-	DataPtr recData;
+	char * recData;
 
 	for ( ;; ) {
 
@@ -190,7 +190,7 @@ inline RETCODE RecordFileScan::GetNextRec (Record & rec) {
 			return result;
 		}
 
-		if ( _comp == nullptr || _comp (recData.get ( ), _attrValue.get(), _attrType, _attrLength) ) {	// if satisfies the condition
+		if ( _comp == nullptr || _comp (recData , _attrValue, _attrType, _attrLength) ) {	// if satisfies the condition
 			rec = tmpRec;
 			break;
 		}

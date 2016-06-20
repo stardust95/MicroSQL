@@ -6,19 +6,25 @@
 #include "RecordIdentifier.hpp"
 
 class Record {
+
+	friend class RecordFile;
+
 public:
 	Record ( );
+	Record (const RecordIdentifier & rid, char * ptr, size_t sz);
 	~Record ( );
 
 	RETCODE GetIdentifier (RecordIdentifier & id) const;
 
-	RETCODE GetData (DataPtr & pData) const;
+	RETCODE GetData (char * & pData) const;
 
 	RETCODE GetSize (size_t & size) const;
 
+private:
+	
 	RETCODE SetData (const RecordIdentifier & id, char *, size_t);
 
-private:
+//private:
 
 	RecordIdentifier _id;
 
@@ -28,15 +34,22 @@ private:
 
 };
 
-static RecordIdentifier INVALIDRID{Utils::UNKNOWNPAGENUM, Utils::UNKNOWNSLOTNUM};
-
-
 using RecordPtr = shared_ptr<Record>;
 
-Record::Record ( ) {
+Record::Record () {
+	_pData = nullptr;
+	_id = UNKNOWNRID;
+}
+
+inline Record::Record (const RecordIdentifier & rid, char * ptr, size_t sz) {
+	_id = rid;
+	_size = sz;
+	_pData = DataPtr (new char[_size] ( ));
+	memcpy_s (_pData.get ( ), _size, ptr, _size);
 }
 
 Record::~Record ( ) {
+	
 }
 
 inline RETCODE Record::GetIdentifier (RecordIdentifier & id) const {
@@ -44,8 +57,8 @@ inline RETCODE Record::GetIdentifier (RecordIdentifier & id) const {
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE Record::GetData (DataPtr & pData) const {
-	pData = _pData;
+inline RETCODE Record::GetData (char * & pData) const {
+	pData = _pData.get();
 	return RETCODE::COMPLETE;
 }
 
@@ -54,12 +67,11 @@ inline RETCODE Record::GetSize (size_t & size) const {
 	return RETCODE::COMPLETE;
 }
 
-inline RETCODE Record::SetData (const RecordIdentifier & id, char * pData, size_t size) {
-	_id = id;
-	
-	_pData = DataPtr(pData);
-
-	_size = size;
+inline RETCODE Record::SetData (const RecordIdentifier & rid, char * ptr, size_t sz) {
+	_id = rid;
+	_size = sz;
+	_pData = DataPtr (new char[_size] ( ));
+	memcpy_s (_pData.get ( ), _size, ptr, _size);
 
 	return RETCODE::COMPLETE;
 }

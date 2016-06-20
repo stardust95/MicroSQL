@@ -1,4 +1,4 @@
-#pragma once
+Hhu		#pragma once
 
 class LogManager {
 public:

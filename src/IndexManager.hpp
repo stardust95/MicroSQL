@@ -14,12 +14,14 @@ public:
 											//int        indexNo,
 											AttrType   attrType,
 											int        attrLength);
+	
 	RETCODE DestroyIndex (const char *fileName);          // Destroy index
 											
 	RETCODE OpenIndex (const char *fileName,          // Open index
 											//int        indexNo,
-										IndexHandlePtr &indexHandle);
-	RETCODE CloseIndex (IndexHandlePtr &indexHandle);  // Close index
+											IndexHandlePtr & indexHandle);
+	
+	RETCODE CloseIndex (const IndexHandlePtr & indexHandle);  // Close index
 
 private:
 
@@ -30,9 +32,11 @@ private:
 using IndexManagerPtr = shared_ptr<IndexManager>;
 
 IndexManager::IndexManager ( ) {
+	
 }
 
 IndexManager::~IndexManager ( ) {
+
 }
 
 inline RETCODE IndexManager::CreateIndex (const char * fileName, AttrType attrType, int attrLength) {
