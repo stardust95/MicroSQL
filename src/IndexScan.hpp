@@ -8,12 +8,18 @@ class IndexScan {
 public:
 	IndexScan ( );
 	~IndexScan ( );
-	RETCODE OpenScan (const IndexHandle &indexHandle, // Initialize index scan
+	
+	RETCODE OpenScan (const IndexHandle & indexHandle, // Initialize index scan
 										CompOp compOp,
-										void*value);
-	RETCODE GetNextEntry (const RecordIdentifier & rid);                         // Get next matching entry
+										void * value);
+	
+	RETCODE GetNextEntry (RecordIdentifier & rid);                         // Get next matching entry
+	
 	RETCODE CloseScan ( );                                 // Terminate index scan
+
 private:
+
+	//std::vector<>
 
 };
 

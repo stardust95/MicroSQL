@@ -101,7 +101,7 @@ inline RETCODE BufferManager::AllocatePage ( PagePtr & page) {
 		return result;
 	}
 
-	_lockMap[num] = 0;
+	_lockMap[num] = 1;
 	_dirtyMap[num] = false;
 
 	return result;
@@ -238,11 +238,13 @@ inline RETCODE BufferManager::UnlockPage ( PageNum page) {
 	if ( _lockMap[page] == 0 ) {			// if the page has not lock
 		return RETCODE::PAGEUNLOCKNED;
 	}
-
+/*
+	Unlock != Delete
 	if ( ( result = _bufferTbl.Delete ( page) ) ) {
 		Utils::PrintRetcode (result, __FUNCTION__, __LINE__);
 		return result;
 	}
+*/
 
 	_lockMap[page] -= 1;
 	_dirtyMap[page] = false;

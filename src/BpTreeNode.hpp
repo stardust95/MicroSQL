@@ -79,7 +79,7 @@ public:
 
 
 	RETCODE FindKey (void * key, const RecordIdentifier & rid, size_t & keyPos) const;
-	size_t FindKey (void * key, const RecordIdentifier & rid = INVALIDRID) const;
+	size_t FindKey (void * key, const RecordIdentifier & rid = UNKNOWNRID) const;
 	size_t FindKeyPosFit (void * key) const;
 		
 	void * LargestKey ( ) const;
@@ -318,7 +318,7 @@ inline RecordIdentifier BpTreeNode::ridAt (size_t i) const {
 	if ( i < this->GetNumKeys ( ) )
 		return rids[i];
 
-	return INVALIDRID;
+	return UNKNOWNRID;
 }
 
 inline RETCODE BpTreeNode::writePage ( ) const {
@@ -371,7 +371,7 @@ RETCODE BpTreeNode::FindKey (void * key, const RecordIdentifier & rid, size_t & 
 	keyPos = Utils::UNKNOWNPOS;
 	
 	for ( size_t i = 0; i < this->GetNumKeys ( ); ++i ) {
-		if ( comp (key, keyAt(i) ) == 0 && (rid == INVALIDRID || rid == ridAt(i)) ) {	// if rid is INVALIDRID, only compare the rid
+		if ( comp (key, keyAt(i) ) == 0 && (rid == UNKNOWNRID || rid == ridAt(i)) ) {	// if rid is INVALIDRID, only compare the rid
 			keyPos = i;
 		}
 	}
@@ -382,7 +382,7 @@ RETCODE BpTreeNode::FindKey (void * key, const RecordIdentifier & rid, size_t & 
 inline size_t BpTreeNode::FindKey (void * key, const RecordIdentifier & rid) const{
 
 	for ( size_t i = 0; i < GetNumKeys ( ); i++ ) {
-		if ( comp (keyAt (i), key) == 0 && ( rid == INVALIDRID || rid == ridAt (i) ) )
+		if ( comp (keyAt (i), key) == 0 && ( rid == UNKNOWNRID || rid == ridAt (i) ) )
 			return i;
 	}
 	return Utils::UNKNOWNPOS;
@@ -449,14 +449,14 @@ inline RETCODE BpTreeNode::SetKey (size_t keyPos, void * key) {
 inline RecordIdentifier BpTreeNode::GetRid (size_t pos) const {
 	if ( pos < this->GetNumKeys ( ) )
 		return rids[pos];
-	return INVALIDRID;
+	return UNKNOWNRID;
 }
 
 inline RecordIdentifier BpTreeNode::GetRid (void * key) const {
 	size_t keypos = this->FindKey(key);
 
 	if ( keypos == Utils::UNKNOWNPOS )
-		return INVALIDRID;
+		return UNKNOWNRID;
 
 	return ridAt (keypos);
 

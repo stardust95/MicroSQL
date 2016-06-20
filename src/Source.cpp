@@ -15,11 +15,13 @@ int main ( ) {
 
 	RecordFileManagerPtr recMgr = make_shared<RecordFileManager> ( );
 
+	PageFileManagerPtr pfMgr = make_shared<PageFileManager> ( );
+
 	const char * filename = "table.attrName";
 	
 	SystemManagerPtr sysMgr = make_shared<SystemManager>(ixMgr, recMgr);
 
-	//SystemManager::CreateDb ("testdb", 2, nullptr);
+	//sysMgr->CreateDb ("testdb", pfMgr);
 
 	system ("pause");
 	return 0;

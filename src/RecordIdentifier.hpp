@@ -36,6 +36,8 @@ private:
 
 using RecordIdentifierPtr = shared_ptr<RecordIdentifier>;
 
+static RecordIdentifier UNKNOWNRID{ Utils::UNKNOWNPAGENUM, Utils::UNKNOWNSLOTNUM };
+
 RecordIdentifier::RecordIdentifier ( ) {
 }
 

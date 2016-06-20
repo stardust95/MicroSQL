@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-	1. 每个表单独存放于一个文件中
+	1. 除了BufferManager, PageFileManager, 其他模块不能直接使用PageFile, 必须通过BufferManager使用 
 	2. 每个文件的第一个Page(PageNum = 0)用于存放文件头信息(PageFileHeader结构体)
 	3. 每个Page的前sizeof(PageHeader)个字节存这个Page的信息
 	4. PageFile需要考虑PageHeader
@@ -31,13 +31,14 @@ struct PageFileHeader {
 class PageFile {
 
 	friend class PageFileManager;
-
+	friend class BufferManager;
 public:
-
 	//PageFile ( );
 	PageFile (const PageFile & file);
 	PageFile (const char *);
 	~PageFile ( );
+
+private:
 
 	RETCODE GetFirstPage (PagePtr &pageHandle) ;   // Get the first page
 	RETCODE GetLastPage (PagePtr &pageHandle) ;   // Get the last page
@@ -62,16 +63,16 @@ public:
 
 	RETCODE Close ( );
 
-private:
-
-	const static int PAGESIZEACTUAL = Utils::PAGESIZE + sizeof (PageHeader);
-
 	RETCODE OpenRead ( );
 	RETCODE OpenWrite ( );
 
 	std::fstream & stream ( );
 
 	RETCODE GetHeaderPage (PagePtr & page);
+
+private:
+
+	const static int PAGESIZEACTUAL = Utils::PAGESIZE + sizeof (PageHeader);
 
 	std::string _filename;
 
